@@ -1,0 +1,6 @@
+research/
+node_modules/
+test-results/
+*.zip
+extract.ps1
+dist/assets/image*
