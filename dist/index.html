@@ -15,6 +15,9 @@
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./calendar.css" />
+    <link rel="stylesheet" href="./buddy.css" />
+    <link rel="stylesheet" href="./refinements.css" />
     <script defer src="./peerjs.min.js"></script>
     <script type="module" src="./app.js"></script>
   </head>
@@ -23,9 +26,49 @@
       <div class="loading">
         <span>💪</span>
         <h1>ЖМИ, БРАТ</h1>
-        <p>Раскладываем блины по местам…</p>
+        <p data-loading-line role="status">Раскладываем блины по местам…</p>
       </div>
     </div>
+    <script>
+      (() => {
+        const target = document.querySelector("[data-loading-line]");
+        const lines = [
+          "Раскладываем блины по местам…",
+          "Ну что, по подходику?",
+          "Качок разминается. Дневник подтягивается.",
+          "Собираем стаю. Волк уже на месте 🐺",
+          "Гориллы проверяют базу 🦍",
+          "Пока грузимся — расправь плечи, брат.",
+          "Протираем скамью для великих дел…",
+          "Подкручиваем бицепс. Почти готово.",
+          "Загружаем железо. Спину держим ровно.",
+          "Банан напарнику. Подход — тебе 🍌",
+          "Секунду, брат. Блины сами себя не разложат.",
+          "Дневник просыпается. Качок уже дышит.",
+        ];
+        let previous = -1;
+        try {
+          previous = Number(sessionStorage.getItem("zhmi:loading-line") ?? -1);
+        } catch {}
+        let current =
+          (previous + 1 + Math.floor(Math.random() * (lines.length - 1))) %
+          lines.length;
+        target.textContent = lines[current];
+        try {
+          sessionStorage.setItem("zhmi:loading-line", String(current));
+        } catch {}
+        const timer = setInterval(() => {
+          if (!target.isConnected) {
+            clearInterval(timer);
+            return;
+          }
+          current =
+            (current + 1 + Math.floor(Math.random() * (lines.length - 1))) %
+            lines.length;
+          target.textContent = lines[current];
+        }, 2200);
+      })();
+    </script>
     <dialog id="dialog"></dialog>
     <div id="toast" role="status" aria-live="polite"></div>
     <div id="reactions" aria-hidden="true"></div>

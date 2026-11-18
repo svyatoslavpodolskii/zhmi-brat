@@ -6,7 +6,7 @@ with sync_playwright() as p:
  def start(name,code=None,existing=False):
   c=browser.new_context(viewport={'width':390,'height':844});contexts.append(c);page=c.new_page();page.on('pageerror',lambda e:errors.append(str(e)))
   page.goto(base);page.wait_for_load_state('networkidle')
-  page.locator('.topbar [data-action="profile"]').click();page.locator('[name="name"]').fill(name);page.locator('#profile-form button').click()
+  page.locator('.topbar [data-action="profile"]').click();page.locator('[name="name"]').fill(name);page.locator('#profile-form button.primary').click()
   page.locator('.bottom-nav [data-page="room"]').click()
   if code:
    page.locator('[data-action="join"]').click();page.locator('#join-form textarea').fill(code)
@@ -30,6 +30,10 @@ with sync_playwright() as p:
  assert pb.evaluate('JSON.parse(localStorage.getItem("zhmi:state")).name')=='Один профиль'
  pa.locator('.bottom-nav [data-page="room"]').click();assert pa.locator('.members .member').count()==1
  print('Own active device approval and one shared member passed',flush=True)
+ # The new calendar is part of the same profile and survives recovery.
+ pa.locator('.bottom-nav [data-page="calendar"]').click();month=pa.locator('[data-cal-date]').first.get_attribute('data-cal-date')[:7];planned=month+'-24';pa.locator(f'[data-cal-date="{planned}"]').click()
+ pb.locator('.bottom-nav [data-page="calendar"]').click();pb.wait_for_function('(date)=>document.querySelector(`[data-cal-date="${date}"]`).classList.contains("has-training")',arg=planned,timeout=30000)
+ pa.locator('.bottom-nav [data-page="train"]').click();pb.locator('.bottom-nav [data-page="train"]').click()
  # Concurrent offline edits to different fields must survive reconnection.
  pa.locator('.bottom-nav [data-page="train"]').click();a.set_offline(True);b.set_offline(True)
  value(pa,'F77',85);value(pb,'G77',6)
@@ -56,6 +60,7 @@ with sync_playwright() as p:
  pc.locator('[data-action="approve-device"]').click();pd.locator('[data-action="confirm-device"]').wait_for(timeout=30000);pd.locator('[data-action="confirm-device"]').click()
  assert pd.locator('[data-cell="F77"]').input_value()=='85';assert pd.locator('[data-cell="G77"]').input_value()=='6'
  assert pd.evaluate('JSON.parse(localStorage.getItem("zhmi:state")).name')=='Один профиль'
+ assert pd.evaluate('(date)=>JSON.parse(localStorage.getItem("zhmi:state")).calendar.training[date]',planned)=='planned'
  print('Recovery by an established participant restored the diary',flush=True)
  pd.locator('.bottom-nav [data-page="room"]').click()
  assert pd.locator('.members .member').count()==2

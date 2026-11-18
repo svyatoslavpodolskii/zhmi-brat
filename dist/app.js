@@ -2,6 +2,14 @@ import { WorkbookEngine, colName } from "./engine.js";
 import { Room, identity, EMOJIS, validDiary } from "./rooms.js";
 import { stampChanges, mergeDiaries, sameRegisters } from "./sync-state.js";
 import { initUpdates, APP_VERSION } from "./updates.js";
+import { CalendarView } from "./calendar-view.js";
+import { SCHEDULES } from "./calendar.js";
+import {
+  buddyHTML,
+  installBuddy,
+  refreshBuddyMood,
+  celebrateBuddy,
+} from "./buddy.js";
 import {
   MAIN,
   dayRows,
@@ -84,6 +92,7 @@ function phaseName(p) {
 }
 const icons = {
   train: "🏋️",
+  calendar: "🗓️",
   progress: "📈",
   room: "🦍",
   tech: "📖",
@@ -92,6 +101,7 @@ const icons = {
 };
 const labels = {
   train: "Тренировка",
+  calendar: "Календарь",
   progress: "Прогресс",
   room: "Комната",
   tech: "Техника",
@@ -100,6 +110,36 @@ const labels = {
 };
 let saveTimer;
 let pendingExercises;
+const calendarView = new CalendarView({
+  today,
+  state: () => state,
+  own: () => ({ ...state, id: memberId(ident.id) }),
+  members: () => room?.access.members() || [],
+  buddy: () => buddy(),
+  render,
+  toast,
+  changed: (message) => {
+    const focusedDate = document.activeElement?.dataset?.calDate;
+    commit();
+    render();
+    if (focusedDate)
+      document
+        .querySelector(`[data-cal-date="${focusedDate}"]`)
+        ?.focus({ preventScroll: true });
+    toast(message);
+  },
+  schedule: () => modal(calendarView.scheduleForm()),
+  train: (date) => {
+    viewId = ident.id;
+    viewCycle = null;
+    cycle().dates ??= {};
+    cycle().dates[setKey(cycle().position)] = date;
+    commit();
+    page = "train";
+    render();
+    window.scrollTo(0, 0);
+  },
+});
 function copyExercisesModal() {
   if (own()) return;
   const source = cycle(),
@@ -201,10 +241,10 @@ function appShell() {
     .join(
       "",
     )}</nav><div class="sidebar-bottom"><button data-action="cycles" class="cycle-link">↻ ${esc(c.name)}<span>Все циклы и архив</span></button><button data-action="profile" class="profile"><span class="avatar small">${esc(state.avatar)}</span><span>${esc(state.name)}<small>Твой личный дневник</small></span><span>⚙</span></button></div></aside>
- <div class="workspace"><header class="topbar"><div class="mobile-brand">💪 <b>ЖМИ, БРАТ.</b></div><div class="breadcrumb">Твоя качалка <span>/</span> ${labels[page]}</div><button data-action="nav" data-page="room" class="connection"><i class="${room?.connections.size ? "online" : ""}"></i><span id="connection-text">${esc(status)}</span></button><button class="avatar small" data-action="profile" aria-label="Профиль">${esc(state.avatar)}</button></header>
- <div class="content"><main id="main" tabindex="-1">${!own() ? `<div class="viewing">${esc(person().avatar)} Дневник ${esc(person().name)} · только просмотр <div class="viewing-actions"><button data-action="copy-exercises-open">Взять упражнения</button><button data-action="own">К моему</button></div></div>` : ""}${deviceNotice()}${page === "train" ? training(p) : page === "progress" ? progress() : page === "room" ? roomPage() : page === "tech" ? techPage() : page === "calc" ? calculator() : helpPage()}</main><aside class="rightbar">${buddy()}${timerCard()}${roomMini()}</aside></div>
- <footer>На основе «Умной Проги 8.0 (RPE)» · <a href="https://boosty.to/yetiblog" target="_blank" rel="noopener">Evolution Yeti</a><button data-action="nav" data-page="help">Формулы и источник</button></footer></div>
- <nav class="bottom-nav" aria-label="Мобильная навигация">${["train", "progress", "room", "tech", "calc"].map((k) => `<button data-action="nav" data-page="${k}" class="${page === k ? "active" : ""}"><span>${icons[k]}</span>${labels[k]}</button>`).join("")}</nav><button class="floating-timer" data-action="timer-open" aria-label="Таймер отдыха">◷ <span id="mobile-time">Отдых</span></button>`;
+ <div class="workspace"><header class="topbar"><button class="mobile-brand brand" data-action="nav" data-page="train" aria-label="ЖМИ, БРАТ — главная"><span class="brand-icon">жб</span><strong>ЖМИ,<br>БРАТ<span class="brand-dot">.</span></strong></button><div class="breadcrumb">Твоя качалка <span>/</span> ${labels[page]}</div><button data-action="nav" data-page="room" class="connection"><i class="${room?.connections.size ? "online" : ""}"></i><span id="connection-text">${esc(status)}</span></button><button class="avatar small" data-action="profile" aria-label="Профиль">${esc(state.avatar)}</button></header>
+ <div class="content"><main id="main" tabindex="-1">${!own() ? `<div class="viewing">${esc(person().avatar)} Дневник ${esc(person().name)} · только просмотр <div class="viewing-actions"><button data-action="copy-exercises-open">Взять упражнения</button><button data-action="own">К моему</button></div></div>` : ""}${deviceNotice()}${page === "train" ? training(p) : page === "calendar" ? calendarView.html() : page === "progress" ? progress() : page === "room" ? roomPage() : page === "tech" ? techPage() : page === "calc" ? calculator() : helpPage()}</main><aside class="rightbar">${buddy()}${timerCard()}${roomMini()}</aside></div>
+ <footer class="app-footer"><button data-action="nav" data-page="help">Справка и источники</button></footer></div>
+ <nav class="bottom-nav" aria-label="Мобильная навигация">${["train", "calendar", "progress", "room", "tech", "calc"].map((k) => `<button data-action="nav" data-page="${k}" class="${page === k ? "active" : ""}"><span>${icons[k]}</span>${labels[k]}</button>`).join("")}</nav><button class="floating-timer" data-action="timer-open" aria-label="Таймер отдыха">◷ <span id="mobile-time">Отдых</span></button>`;
   updateTimer();
 }
 function training(p) {
@@ -233,8 +273,8 @@ function training(p) {
      : `<div class="session-toolbar"><div class="week-pick"><label for="week">Неделя</label><select id="week" data-action="week" ${p.phase === "test" ? "disabled" : ""}>${Array.from({ length: p.phase === "prep" ? 2 : p.phase === "test" ? 1 : 9 }, (_, i) => `<option value="${i}" ${p.week === i ? "selected" : ""}>${p.phase === "meso" ? `М${Math.floor(i / 3) + 1} / ` : ""}${i + 1}</option>`).join("")}</select></div><div class="day-tabs" aria-label="День тренировки">${[0, 1, 2].map((i) => `<button data-action="day" data-day="${i}" class="${p.day === i ? "active" : ""}">День ${i + 1}${done.includes(setKey({ ...p, day: i })) ? " ✓" : ""}</button>`).join("")}</div><label class="session-date"><span>Дата</span><input type="date" value="${esc(c.dates?.[key] || today())}" data-date ${own() ? "" : "disabled"}></label></div>
  <div class="session-title"><h2>День ${p.day + 1} <span>${slots.filter((s) => selected(s) !== "+").length} упражнений</span></h2><button class="text-button" data-action="rpe-help">Что такое RPE?</button></div>
  ${p.phase === "test" ? '<div class="note blue">Взвешенные подтягивания и брусья: вводи вес тела + отягощение. Для упражнений с собственным весом важны повторения; шаг в настройках — прибавка повторений.</div>' : ""}
- <div class="exercise-list">${slots.map((s, i) => exercise(s, p, i)).join("")}</div>
- <div class="mobile-buddy">${buddy()}</div><div class="session-finish"><div><strong>${done.includes(key) ? "Тренировка завершена ✓" : count ? "Хорошо идём, брат." : "Начни с разминки"}</strong><span>${count ? `Записано подходов: ${count}` : "5–10 минут суставной гимнастики, затем разминочные подходы."}</span></div><button class="primary" data-action="finish" ${own() ? "" : "disabled"}>${done.includes(key) ? "Следующая тренировка" : "Завершить тренировку"} <span>✓</span></button></div>`
+ ${warmupPanel()}<div class="exercise-list">${slots.map((s, i) => exercise(s, p, i)).join("")}</div>
+ <div class="session-finish"><div><strong>${done.includes(key) ? "Тренировка завершена ✓" : count ? "Хорошо идём, брат." : "Пока нет записанных подходов"}</strong><span>${count ? `Записано подходов: ${count}` : "Отмечай выполненные подходы галочкой."}</span></div><button class="primary" data-action="finish" ${own() ? "" : "disabled"}>${done.includes(key) ? "Следующая тренировка" : "Завершить тренировку"} <span>✓</span></button></div><div class="mobile-buddy">${buddy()}</div>`
  }`;
 }
 function exercise(slot, p, i) {
@@ -297,12 +337,19 @@ function exercise(slot, p, i) {
         sets += `<p class="missing">${g ? "Для добивочного веса укажи RPE основного блока." : "Для рабочего веса заполни тест или RPE предыдущей недели."}</p>`;
     }
   }
-  return `<article class="exercise"><header class="exercise-header"><span class="exercise-number">${i + 1}</span><div>${config}<p>${p.phase === "prep" ? esc(result(e, "C" + slot.row) || "Первый рабочий подход") + " · RPE " + esc(result(e, "D" + slot.row) || "7–9") : body ? "Собственный вес" : "Авторегуляция по RPE"}</p></div><button class="exercise-info" data-action="exercise-info" data-slot="${slot.row}" aria-label="Настройки и формулы ${slot.row}">···</button></header><div class="sets">${sets}</div><div class="exercise-foot"><button data-action="tech-for" data-name="${esc(name.trim())}">↗ Техника</button><label class="rounding-control"><span>${body && p.phase !== "prep" ? "Прибавка, повт." : "Шаг округления, кг"}</span><select data-round="${slot.row}" aria-label="Шаг округления ${slot.row}" ${own() ? "" : "disabled"}>${[1, 2, 2.5, 3, 5].map((n) => `<option value="${n}" ${round === n ? "selected" : ""}>${fmt(n)}</option>`).join("")}</select></label></div></article>`;
+  return `<article class="exercise"><header class="exercise-header"><span class="exercise-number">${i + 1}</span><div>${config}<p>${p.phase === "prep" ? esc(result(e, "C" + slot.row) || "Первый рабочий подход") + " · RPE " + esc(result(e, "D" + slot.row) || "7–9") : body ? "Собственный вес" : "Авторегуляция по RPE"}</p></div><button class="exercise-info" data-action="exercise-info" data-slot="${slot.row}" aria-label="Формулы упражнения ${slot.row}">···</button></header><div class="exercise-tools"><label class="rounding-control"><span>${body && p.phase !== "prep" ? "Прибавка, повт." : "Шаг округления, кг"}</span><select data-round="${slot.row}" aria-label="Шаг округления ${slot.row}" ${own() ? "" : "disabled"}>${[1, 2, 2.5, 3, 5].map((n) => `<option value="${n}" ${round === n ? "selected" : ""}>${fmt(n)}</option>`).join("")}</select></label><button data-action="tech-for" data-name="${esc(name.trim())}">↗ Техника</button></div><div class="sets">${sets}</div></article>`;
+}
+function warmupPanel() {
+  return `<details class="warmup-panel"><summary><span class="warmup-symbol">🔥</span><span><b>Сначала разминка</b><small>5–10 минут суставной гимнастики, затем разминочные подходы</small></span><span class="warmup-chevron">⌄</span></summary><div><p>Разогрей суставы, уделяя внимание плечам, позвоночнику и коленям. Перед каждым упражнением выполни разминочные подходы с постепенным повышением веса.</p><p>С небольшим весом обычно достаточно подхода на 8–10 повторений примерно с половиной рабочего веса. Для тяжёлого веса нужны несколько ступеней с уменьшением повторений: 8 → 6 → 4 → 2 → 1.</p><button class="text-button" data-action="warmup-calc">Калькулятор проходки на 1ПМ</button></div></details>`;
 }
 function buddy() {
   const logs = Object.values(cycle().logs || {}),
     done = cycle().done?.length || 0;
-  return `<section class="buddy"><span class="buddy-label">Твой напарник</span><div class="buddy-art"><div class="buddy-orbit">${done ? "✓" : "💪"}</div><img src="./assets/buddy.webp" alt="Качок из оригинальной таблицы" width="174" height="290"></div><div class="buddy-speech"><b>${logs.length ? "База растёт." : "Ну что, по подходику?"}</b><p>${logs.length ? `У тебя уже ${logs.length} записанных подходов. ${done} завершённых тренировок.` : "Я тот самый качок из таблицы. Ты записывай, я постою красиво."}</p></div><button data-action="buddy" class="buddy-tap">Дать пять ✋</button></section>`;
+  return buddyHTML({
+    sets: logs.length,
+    sessions: done,
+    rest: !!(deadline || paused || cycle().position?.phase === "rest"),
+  });
 }
 let deadline = Number(localStorage.getItem("zhmi:timer") || 0),
   paused = 0;
@@ -466,7 +513,7 @@ function roomPage() {
     })
     .join(
       "",
-    )}</div></section><section class="panel"><h2>Совместный тренировочный объём</h2>${members.some((p) => p.cycles?.some((c) => summary(c).sets)) ? barChart(members.map((p) => ({ label: p.name, value: p.cycles?.reduce((n, c) => n + summary(c).volume, 0) || 0 }))) : empty("🤝", "Первый подход за кем?", "График сравнит записанный объём всех участников комнаты.")}<div class="reactions">${["💪", "🔥", "👏", "🦍"].map((e) => `<button data-action="react" data-emoji="${e}" aria-label="Отправить ${e}">${e}</button>`).join("")}</div></section><details class="panel"><summary>Как работает синхронизация</summary><p>Результаты хранятся в браузере и передаются между открытыми вкладками участников через WebRTC (PeerJS). Сервер сигнализации помогает установить связь. Историю уже встречавшихся участников можно просматривать офлайн.</p><p>Для первой встречи и получения новых записей откройте комнату одновременно. Когда участник закроет вкладку, его устройство не принимает обновления. После возвращения копии сверяются по подписанным версиям.</p><p>Код даёт доступ к дневникам комнаты. Не публикуйте приглашение, если хотите оставить их в кругу друзей. В некоторых сетях прямое соединение недоступно; данные сохраняются локально, статус связи показан сверху.</p><button class="text-button" data-action="reconnect">Переподключить комнату</button></details>`;
+    )}</div></section><section class="panel"><h2>Совместный тренировочный объём</h2>${members.some((p) => p.cycles?.some((c) => summary(c).sets)) ? barChart(members.map((p) => ({ label: p.name, value: p.cycles?.reduce((n, c) => n + summary(c).volume, 0) || 0 }))) : empty("🤝", "Первый подход за кем?", "График сравнит записанный объём всех участников комнаты.")}<div class="reactions">${["🦍", "💪", "🍌", "🐺", "🔥", "🦧"].map((e) => `<button data-action="react" data-emoji="${e}" aria-label="Отправить ${e}">${e}</button>`).join("")}</div></section><details class="panel"><summary>Как работает синхронизация</summary><p>Результаты хранятся в браузере и передаются между открытыми вкладками участников через WebRTC (PeerJS). Сервер сигнализации помогает установить связь. Историю уже встречавшихся участников можно просматривать офлайн.</p><p>Для первой встречи и получения новых записей откройте комнату одновременно. Когда участник закроет вкладку, его устройство не принимает обновления. После возвращения копии сверяются по подписанным версиям.</p><p>Код даёт доступ к дневникам комнаты. Не публикуйте приглашение, если хотите оставить их в кругу друзей. В некоторых сетях прямое соединение недоступно; данные сохраняются локально, статус связи показан сверху.</p><button class="text-button" data-action="reconnect">Переподключить комнату</button></details>`;
 }
 function techPage() {
   const list = data.links
@@ -476,7 +523,7 @@ function techPage() {
         (group === "all" || l.group === group) &&
         l.title.toLowerCase().includes(search.toLowerCase()),
     );
-  return `<div class="page-heading"><div><h1>Сначала техника<span class="heading-dot">.</span></h1><p>Все 30 авторских ссылок из оригинала — на отдельной странице.</p></div><span class="heading-emoji">📖</span></div><div class="search-bar"><span>⌕</span><input id="tech-search" type="search" placeholder="Найти упражнение…" value="${esc(search)}" aria-label="Найти технику упражнения"></div><div class="filter-tabs">${[
+  return `<div class="page-heading"><div><h1>Сначала техника<span class="heading-dot">.</span></h1><p>Выбери упражнение и открой разбор техники.</p></div><span class="heading-emoji">📖</span></div><div class="search-bar"><span>⌕</span><input id="tech-search" type="search" placeholder="Найти упражнение…" value="${esc(search)}" aria-label="Найти технику упражнения"></div><div class="filter-tabs">${[
     ["all", "Все упражнения"],
     ["upper", "Верх тела"],
     ["lower", "Низ тела"],
@@ -487,7 +534,7 @@ function techPage() {
     )
     .join(
       "",
-    )}</div><div class="tech-grid">${list.map((l) => `<a class="tech-link" href="${esc(l.url)}" target="_blank" rel="noopener"><span class="tech-icon">${l.group === "upper" ? "💪" : "🦵"}</span><div><h3>${esc(l.title)}</h3><span>${l.group === "upper" ? "Верх" : "Низ"} тела · видео-гайд автора</span></div><span>↗</span></a>`).join("")}</div>${!list.length ? empty("🔎", "Такой ссылки в книге нет", "Попробуй другое название: например, «жим» или «тяга».") : ""}<p class="note">Это исходные ссылки Evolution Yeti. Часть материалов доступна подписчикам Boosty.</p><details class="panel"><summary>Ссылки с расчётного листа</summary>${data.formulaLinks.map((l) => `<p><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title)}</a><small> · ${esc(l.cell)}</small></p>`).join("")}</details><details class="panel"><summary>Другие программы автора</summary>${data.links
+    )}</div><div class="tech-grid">${list.map((l) => `<a class="tech-link" href="${esc(l.url)}" target="_blank" rel="noopener"><span class="tech-icon">${l.group === "upper" ? "💪" : "🦵"}</span><div><h3>${esc(l.title)}</h3><span>${l.group === "upper" ? "Верх" : "Низ"} тела · видео-гайд автора</span></div><span>↗</span></a>`).join("")}</div>${!list.length ? empty("🔎", "Такой ссылки в книге нет", "Попробуй другое название: например, «жим» или «тяга».") : ""}<details class="panel"><summary>Ссылки с расчётного листа</summary>${data.formulaLinks.map((l) => `<p><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title)}</a><small> · ${esc(l.cell)}</small></p>`).join("")}</details><details class="panel"><summary>Другие программы автора</summary>${data.links
     .filter((l) => l.group === "programs")
     .map(
       (l) =>
@@ -584,8 +631,60 @@ function helpPage() {
     .join("")}</section>`;
 }
 function render() {
+  const active = document.activeElement;
+  let focus;
+  for (const attr of [
+    "data-cell",
+    "data-fact",
+    "data-exercise",
+    "data-round",
+    "data-cal-date",
+  ])
+    if (active?.hasAttribute(attr)) {
+      focus = {
+        attr,
+        key: active.getAttribute(attr),
+        value: active.value,
+        start: active.selectionStart,
+        end: active.selectionEnd,
+        field: active.matches("input,select"),
+        dirty: active.dataset.editing === "true",
+      };
+      break;
+    }
+  if (active?.matches('button[data-action="log"]'))
+    focus = {
+      selector: `button[data-action="log"][data-slot="${active.dataset.slot}"][data-set="${active.dataset.set}"]`,
+      field: false,
+    };
   appShell();
   calculate();
+  if (focus) {
+    const next = document.querySelector(
+      focus.selector || `[${focus.attr}="${CSS.escape(focus.key)}"]`,
+    );
+    if (next && !next.disabled) {
+      if (focus.field && focus.dirty) {
+        next.value = focus.value;
+        next.dataset.editing = "true";
+      }
+      next.focus({ preventScroll: true });
+      if (typeof focus.start === "number" && next.setSelectionRange)
+        try {
+          next.setSelectionRange(focus.start, focus.end);
+        } catch {}
+    }
+  }
+}
+function refreshCalculatedInputs() {
+  const e = engine();
+  for (const input of document.querySelectorAll("input[data-cell]")) {
+    const addr = input.dataset.cell;
+    if (data.sheets[0].cells[addr]?.f) {
+      const value = result(e, addr);
+      input.placeholder = value === null ? "ждём данные" : fmt(value);
+    }
+  }
 }
 function setPosition(p) {
   if (own()) {
@@ -611,6 +710,7 @@ function saveCell(input) {
   }
   if (value === null) delete cycle().overrides[MAIN + "!" + addr];
   else cycle().overrides[MAIN + "!" + addr] = value;
+  delete input.dataset.editing;
   commit();
   return true;
 }
@@ -706,6 +806,7 @@ function markLog(button) {
   };
   commit();
   render();
+  celebrateBuddy();
   toast("Подход записан. База!");
 }
 function finish() {
@@ -741,6 +842,7 @@ function finish() {
     c.done.push(key);
     commit();
     toast("Тренировка завершена. Хорош, брат!");
+    gorillaRain(40);
   }
   const next = nextPosition(p);
   if (next) {
@@ -758,7 +860,7 @@ function cyclesModal(completed = false) {
 }
 function profileModal() {
   modal(
-    `<h2>Это ты, брат</h2><form id="profile-form"><label class="field"><span>Как тебя зовут?</span><input name="name" maxlength="32" required value="${esc(state.name)}"></label><label class="field"><span>Твой зверь</span><select name="avatar">${EMOJIS.map((e) => `<option ${state.avatar === e ? "selected" : ""}>${e}</option>`).join("")}</select></label><button class="primary">Сохранить профиль</button></form><hr><h3>Устройства и обновления</h3><div class="button-row"><button class="secondary" data-action="devices">Мои устройства</button><button class="secondary" data-check-updates>Проверить обновления</button></div><p class="muted">Версия ${APP_VERSION}. При выходе новой версии появится кнопка «Обновиться».</p><h3>Резервная копия</h3><p>История хранится на этом устройстве. Экспортируй её перед очисткой браузера или переносом на другой телефон.</p><div class="button-row"><button class="secondary" data-action="export">Скачать JSON</button><label class="secondary file-label">Восстановить<input type="file" id="import-file" accept="application/json" hidden></label></div><p class="muted">В копии — твои тренировки и коды комнат. Личный ключ подписи остаётся на устройстве. На другом устройстве импорт создаст дневник с его собственной подписью.</p>`,
+    `<h2>Это ты, брат</h2><form id="profile-form"><label class="field"><span>Как тебя зовут?</span><input name="name" maxlength="32" required value="${esc(state.name)}"></label><label class="field"><span>Твой зверь</span><span class="avatar-picker">${["🦍", "🐺", "🦧", "🐒"].map((emoji) => `<button type="button" data-action="quick-avatar" data-avatar="${emoji}" aria-label="Выбрать ${emoji}">${emoji}</button>`).join("")}</span><select name="avatar">${EMOJIS.map((e) => `<option ${state.avatar === e ? "selected" : ""}>${e}</option>`).join("")}</select></label><button class="primary">Сохранить профиль</button></form><hr><h3>Устройства и обновления</h3><div class="button-row"><button class="secondary" data-action="devices">Мои устройства</button><button class="secondary" data-check-updates>Проверить обновления</button></div><p class="muted">Версия ${APP_VERSION}. При выходе новой версии появится кнопка «Обновиться».</p><h3>Резервная копия</h3><p>История хранится на этом устройстве. Экспортируй её перед очисткой браузера или переносом на другой телефон.</p><div class="button-row"><button class="secondary" data-action="export">Скачать JSON</button><label class="secondary file-label">Восстановить<input type="file" id="import-file" accept="application/json" hidden></label></div><p class="muted">В копии — твои тренировки и коды комнат. Личный ключ подписи остаётся на устройстве. На другом устройстве импорт создаст дневник с его собственной подписью.</p>`,
   );
 }
 function exerciseModal(row) {
@@ -889,11 +991,7 @@ function changeRoom(code, mode = "new") {
           commit();
         }
       }
-      if (
-        !document.activeElement?.matches("input,select,textarea") &&
-        !dialog.open
-      )
-        render();
+      if (!dialog.open) render();
     },
     (s) => {
       status = s;
@@ -908,7 +1006,8 @@ function changeRoom(code, mode = "new") {
   )
     room.access.mode = "existing";
   localStorage.setItem("zhmi:entry-mode:" + room.code, room.access.mode);
-  room.onReaction = reaction;
+  room.onReaction = (emoji) =>
+    emoji === "🦍" ? gorillaRain(36) : reaction(emoji);
   room.publish(structuredClone(state));
 }
 function historyReplace(u) {
@@ -921,7 +1020,32 @@ function reaction(emoji) {
   document.querySelector("#reactions").append(el);
   setTimeout(() => el.remove(), 2000);
 }
+let nextGorillaRain = 0;
+function gorillaRain(count = 30) {
+  if (Date.now() < nextGorillaRain) return;
+  nextGorillaRain = Date.now() + 1800;
+  if (matchMedia("(prefers-reduced-motion:reduce)").matches) {
+    toast("🦍🦍🦍 Гориллы аплодируют!");
+    return;
+  }
+  const layer = document.querySelector("#reactions");
+  for (let i = 0; i < Math.min(count, 48); i++)
+    setTimeout(() => {
+      if (layer.children.length > 65) return;
+      const el = document.createElement("span");
+      el.className = "gorilla-rain";
+      el.textContent = "🦍";
+      const duration = 2200 + Math.random() * 1000;
+      el.style.left = Math.random() * 95 + "%";
+      el.style.fontSize = 25 + Math.random() * 28 + "px";
+      el.style.setProperty("--fall-duration", duration + "ms");
+      el.style.setProperty("--fall-drift", -35 + Math.random() * 70 + "px");
+      layer.append(el);
+      setTimeout(() => el.remove(), duration + 150);
+    }, i * 23);
+}
 function updateTimer() {
+  refreshBuddyMood();
   const left = deadline
       ? Math.max(0, Math.ceil((deadline - Date.now()) / 1000))
       : paused || 180,
@@ -935,7 +1059,7 @@ function updateTimer() {
     deadline = 0;
     localStorage.removeItem("zhmi:timer");
     toast("Отдых окончен. Готов к подходу?");
-    reaction("💪");
+    gorillaRain(28);
     const control = document.querySelector(".timer-control");
     if (control) control.textContent = "Запустить 3 минуты";
   }
@@ -946,9 +1070,32 @@ document.addEventListener("click", async (event) => {
   if (!b) return;
   const a = b.dataset.action;
   if (b.tagName === "A") event.preventDefault();
-  if (a === "close") dialog.close();
-  else if (a === "nav") {
+  if (a === "close") {
+    dialog.close();
+    render();
+  } else if (a === "quick-avatar") {
+    const form = document.querySelector("#profile-form");
+    if (form) form.elements.avatar.value = b.dataset.avatar;
+  } else if (a.startsWith("cal-")) {
+    if (a === "cal-remove-schedule") {
+      state.calendar ??= { training: {}, workOverrides: {} };
+      state.calendar.schedule = null;
+      commit();
+      dialog.close();
+      render();
+      toast("Автографик убран");
+    } else calendarView.action(a, b);
+  } else if (a === "warmup-calc") {
+    page = "calc";
+    calcMode = "warmup";
+    render();
+    window.scrollTo(0, 0);
+  } else if (a === "nav") {
     page = b.dataset.page;
+    if (page === "calendar") {
+      viewId = ident.id;
+      viewCycle = null;
+    }
     search = "";
     render();
     window.scrollTo(0, 0);
@@ -1197,8 +1344,27 @@ document.addEventListener("click", async (event) => {
 });
 document.addEventListener("change", (event) => {
   const t = event.target;
+  if (t.dataset.fact) delete t.dataset.editing;
+  if (t.id === "schedule-preset") {
+    const preset = SCHEDULES.find((p) => p.id === t.value),
+      form = t.form;
+    if (preset) {
+      form.elements.work.value = preset.work;
+      form.elements.rest.value = preset.rest;
+    }
+    const weekly = preset?.type === "weekdays";
+    form.elements.anchor.required = !weekly;
+    if (weekly && !form.elements.anchor.value)
+      form.elements.anchor.value = today();
+    form.querySelector(".schedule-counts").hidden = weekly;
+    form.elements.anchor.closest("label").hidden = weekly;
+    return;
+  }
   if (t.dataset.cell) {
-    if (saveCell(t)) render();
+    if (saveCell(t)) {
+      if (t.tagName === "SELECT") render();
+      else refreshCalculatedInputs();
+    }
   } else if (t.dataset.exercise && own()) {
     const row = +t.dataset.exercise,
       slot = data.slots.find((s) => s.row === row);
@@ -1229,6 +1395,8 @@ document.addEventListener("change", (event) => {
   } else if (page === "calc") calculate();
 });
 document.addEventListener("input", (event) => {
+  if (event.target.dataset.cell || event.target.dataset.fact)
+    event.target.dataset.editing = "true";
   if (event.target.dataset.fact && own()) {
     cycle().drafts ??= {};
     cycle().drafts[event.target.dataset.fact] = event.target.value;
@@ -1248,6 +1416,16 @@ document.addEventListener("input", (event) => {
 document.addEventListener("submit", (event) => {
   event.preventDefault();
   const f = event.target;
+  if (f.id === "schedule-form") {
+    try {
+      calendarView.saveSchedule(f);
+      dialog.close();
+      render();
+    } catch (e) {
+      toast(e.message);
+    }
+    return;
+  }
   if (f.id === "profile-form") {
     state.name = f.elements.name.value.trim().slice(0, 32) || "Брат";
     state.avatar = f.elements.avatar.value;
@@ -1277,6 +1455,8 @@ async function importBackup(file) {
     if (!validDiary(incoming))
       throw Error("В резервной копии некорректные данные");
     if (incoming.cycles.length > 100) throw Error("Слишком много циклов");
+    if (state.cycles.length + incoming.cycles.length > 100)
+      throw Error("После импорта получится больше 100 циклов");
     for (const c of incoming.cycles) {
       if (
         typeof c.id !== "string" ||
@@ -1296,10 +1476,26 @@ async function importBackup(file) {
         };
         state.cycles.push(copy);
       }
+    if (incoming.calendar) {
+      const current = state.calendar || {};
+      state.calendar = {
+        schedule:
+          current.schedule ||
+          structuredClone(incoming.calendar.schedule || null),
+        training: {
+          ...(incoming.calendar.training || {}),
+          ...(current.training || {}),
+        },
+        workOverrides: {
+          ...(incoming.calendar.workOverrides || {}),
+          ...(current.workOverrides || {}),
+        },
+      };
+    }
     commit();
     dialog.close();
     render();
-    toast("Циклы добавлены. Текущая история сохранена.");
+    toast("Данные добавлены. Текущая история сохранена.");
   } catch (e) {
     toast(e.message);
   }
@@ -1318,6 +1514,14 @@ window.addEventListener("storage", (event) => {
   }
 });
 const inviteCode = new URLSearchParams(location.hash.slice(1)).get("room");
+installBuddy({
+  resting: () => !!(deadline || paused || cycle().position?.phase === "rest"),
+  reaction,
+  gorillas: gorillaRain,
+  toast,
+  stats: () =>
+    `Подходы: ${Object.keys(cycle().logs || {}).length}. Тренировки: ${cycle().done?.length || 0}.`,
+});
 changeRoom(state.room);
 render();
 if (inviteCode) {
@@ -1362,13 +1566,11 @@ export function connectionDiagnostics() {
       request: r.payload,
       canApprove: room.access.canApprove(r),
     })),
-    members: room.access
-      .members()
-      .map((p) => ({
-        id: p.id,
-        name: p.name,
-        recoveryEnabled: p.recoveryEnabled,
-        recoveryMembers: p.recoveryMembers,
-      })),
+    members: room.access.members().map((p) => ({
+      id: p.id,
+      name: p.name,
+      recoveryEnabled: p.recoveryEnabled,
+      recoveryMembers: p.recoveryMembers,
+    })),
   };
 }

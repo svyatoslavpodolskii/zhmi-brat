@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.1.0";
+export const APP_VERSION = "1.2.0";
 export function initUpdates({ save, toast }) {
   let registration,
     applying = false,
@@ -11,6 +11,14 @@ export function initUpdates({ save, toast }) {
     banner.innerHTML =
       "<div><b>Доступна новая версия</b><span>Дневник сохранится перед обновлением</span></div><button data-update-app>Обновиться</button>";
     document.body.append(banner);
+    document.body.classList.add("has-update");
+    const measure = () =>
+      document.documentElement.style.setProperty(
+        "--release-height",
+        banner.getBoundingClientRect().height + "px",
+      );
+    measure();
+    new ResizeObserver(measure).observe(banner);
   }
   async function check() {
     try {

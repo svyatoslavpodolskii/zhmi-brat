@@ -1,5 +1,6 @@
 import { DeviceAccess } from "./devices.js";
 import { mergeDiaries } from "./sync-state.js";
+import { validCalendar } from "./calendar.js";
 export const EMOJIS = [
   "💪",
   "🐻",
@@ -34,6 +35,7 @@ export const EMOJIS = [
   "🥑",
   "🐳",
 ];
+EMOJIS.push("🐺", "🦧", "🐒", "🐵");
 const bytes = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 const b64 = (b) => btoa(String.fromCharCode(...new Uint8Array(b)));
 export const newCode = () =>
@@ -62,6 +64,7 @@ export function validDiary(p) {
     !p.cycles.length ||
     p.cycles.length > 100 ||
     typeof p.activeCycle !== "string" ||
+    !validCalendar(p.calendar) ||
     (p.recoveryEnabled !== undefined &&
       typeof p.recoveryEnabled !== "boolean") ||
     (p.recoveryMembers !== undefined &&
@@ -354,7 +357,7 @@ export class Room {
       if (
         m.type === "reaction" &&
         typeof m.emoji === "string" &&
-        ["💪", "🔥", "👏", "🦍"].includes(m.emoji)
+        ["💪", "🔥", "👏", "🦍", "🐺", "🦧", "🍌"].includes(m.emoji)
       ) {
         this.onReaction?.(m.emoji);
         if (this.isHub) this.broadcast(m, c.peer);
@@ -390,12 +393,18 @@ export class Room {
     });
   }
   refreshOnline() {
-    this.online = new Set([
+    const online = new Set([
       this.ident.id,
       ...[...this.connections.values()]
         .filter((c) => c.open)
         .flatMap((c) => c.memberIds || []),
     ]);
+    if (
+      online.size === this.online.size &&
+      [...online].every((id) => this.online.has(id))
+    )
+      return;
+    this.online = online;
     this.onChange();
   }
   async accept(rec) {

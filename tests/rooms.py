@@ -8,7 +8,7 @@ with sync_playwright() as p:
   c=browser.new_context(viewport={'width':390,'height':844});contexts.append(c)
   page=c.new_page();page.on('pageerror',lambda e:errors.append(str(e)))
   page.goto(base);page.wait_for_load_state('networkidle')
-  page.locator('.topbar [data-action="profile"]').click();page.locator('[name="name"]').fill(name);page.locator('#profile-form button').click()
+  page.locator('.topbar [data-action="profile"]').click();page.locator('[name="name"]').fill(name);page.locator('#profile-form button.primary').click()
   page.locator('.bottom-nav [data-page="room"]').click()
   if code:
    page.locator('[data-action="join"]').click();page.locator('#join-form textarea').fill(code);page.locator('#join-form button').click()
@@ -55,7 +55,7 @@ with sync_playwright() as p:
  pc.locator('[data-action="own"]').click();pc.locator('.bottom-nav [data-page="room"]').click()
  pb.wait_for_function('document.querySelector("#connection-text").textContent.includes("Вы в комнате") || document.querySelector("#connection-text").textContent.includes("Соединение")',timeout=60000)
  # Change one surviving profile and require delivery after the host election.
- pc.locator('.topbar [data-action="profile"]').click();pc.locator('[name="name"]').fill('Кабачок после переподключения');pc.locator('#profile-form button').click()
+ pc.locator('.topbar [data-action="profile"]').click();pc.locator('[name="name"]').fill('Кабачок после переподключения');pc.locator('#profile-form button.primary').click()
  try:
   pb.locator('.members').get_by_text('Кабачок после переподключения',exact=True).wait_for(timeout=40000)
  except Exception:
