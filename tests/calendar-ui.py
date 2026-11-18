@@ -30,13 +30,13 @@ with sync_playwright() as p:
  page.locator('[data-action="cal-schedule"]').click();page.locator('#schedule-preset').select_option('4/2');assert page.locator('[name="work"]').input_value()=='4';page.locator('#schedule-form .primary').click()
  assert page.evaluate('JSON.parse(localStorage.getItem("zhmi:state")).calendar.schedule.work')==4
  page.reload();page.wait_for_load_state('networkidle');page.locator('.bottom-nav [data-page="calendar"]').click();assert '4 рабочих / 2 выходных' in page.locator('.schedule-strip').inner_text()
- page.locator('.topbar [data-action="profile"]').click();page.locator('[data-action="quick-avatar"][data-avatar="🐺"]').click();page.locator('#profile-form button.primary').click();assert page.locator('.topbar>.avatar').inner_text()=='🐺'
+ page.locator('.topbar [data-action="profile"]').click();page.locator('#profile-form select[name="avatar"]').select_option("🐺");page.locator('#profile-form button.primary').click();assert page.locator('.topbar>.avatar').inner_text()=='🐺'
  buddy=page.locator('.mobile-buddy [data-buddy]');buddy.scroll_into_view_if_needed()
  a=buddy.locator('.buddy-figure img').evaluate('(e)=>getComputedStyle(e).transform');page.wait_for_timeout(450);b=buddy.locator('.buddy-figure img').evaluate('(e)=>getComputedStyle(e).transform');assert a!=b
  buddy.locator('[data-buddy-action="five"]').click();assert 'контакт' in buddy.locator('[data-buddy-line]').inner_text() or buddy.locator('[data-buddy-line]').inner_text()
  buddy.locator('[data-buddy-action="chill"]').click();assert 'is-chilling' in buddy.get_attribute('class');page.screenshot(path=str(out/'calendar-chilling.png'),full_page=True)
  buddy.locator('[data-buddy-action="chill"]').click();assert 'is-awake' in buddy.get_attribute('class')
- page.locator('.floating-timer').click();page.locator('#dialog [data-action="timer"][data-min="3"]').click();assert 'is-chilling' in buddy.get_attribute('class');page.locator('#dialog [data-action="timer-stop"]').click();page.locator('#dialog [data-action="close"]').click()
+ page.locator('.floating-timer').click();page.locator('#dialog [data-action="timer"][data-min="3"]').click();assert 'is-chilling' in page.locator('#dialog [data-buddy]').get_attribute('class');page.locator('#dialog [data-action="timer-stop"]').click();page.locator('#dialog [data-action="close"]').click()
  # The backup restores both the work rule and training dates on a fresh device.
  backup_date=month+'-09';page.locator(f'[data-cal-date="{backup_date}"]').click();page.locator('.topbar [data-action="profile"]').click()
  with page.expect_download() as waiting:page.locator('[data-action="export"]').click()

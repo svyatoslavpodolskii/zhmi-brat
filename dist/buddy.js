@@ -5,6 +5,12 @@ const IDLE = [
   "🐺 Стая собралась — можно жать.",
   "Разомнись, брат. Я пока разогрею харизму.",
   "Ещё один маленький вклад в большую базу.",
+  "Дневник помнит. Бицепс тоже.",
+  "Сначала техника. Потом легенды о весах.",
+  "Я за тебя болею. И слегка качаюсь.",
+  "Сегодняшний подход — завтрашняя база.",
+  "Железо ждёт. Мы с тобой не спешим.",
+  "Настроение: уверенно взяться за гриф.",
 ];
 const REST = [
   "Чиллим по программе.",
@@ -12,6 +18,12 @@ const REST = [
   "🦍 Гориллы тоже отдыхают.",
   "Мышцы работали. Теперь диван.",
   "Не торопи отдых, брат.",
+  "Таймер работает. Мы восстанавливаемся.",
+  "Диван — мой тренажёр на эти три минуты.",
+  "Выдох, вдох. Рекорды подождут.",
+  "Отдыхаем с полной амплитудой.",
+  "Пауза засчитана в пользу бицепса.",
+  "Восстановление тоже требует дисциплины.",
 ];
 let line = 0,
   manualRest = false,
@@ -21,14 +33,20 @@ let line = 0,
 function resting() {
   return manualRest || api?.resting();
 }
-export function buddyHTML({ sets = 0, sessions = 0, rest = false } = {}) {
-  const chill = rest || manualRest;
-  return `<section class="buddy ${chill ? "is-chilling" : "is-awake"}" data-buddy data-move="idle"><div class="buddy-heading"><span>Твой напарник</span></div><button class="buddy-stage" data-buddy-touch aria-label="Потрогать качка. Зажми, чтобы он размялся"><div class="buddy-art"><span class="buddy-sofa" aria-hidden="true"></span><div class="buddy-orbit" aria-hidden="true">${chill ? "🍌" : "💪"}</div><div class="buddy-figure"><img src="./assets/buddy.webp" alt="Твой качок-напарник" width="174" height="290" draggable="false"></div><span class="buddy-zzz" aria-hidden="true"><i>z</i><i>z</i><i>z</i></span><span class="buddy-spark" aria-hidden="true">✦</span></div></button><div class="buddy-speech"><b data-buddy-line>${(chill ? REST : IDLE)[line % (chill ? REST : IDLE).length]}</b><p data-buddy-caption>${chill ? "Выдохни. База любит отдых." : `Подходы: ${sets}. Тренировки: ${sessions}.`}</p></div><div class="buddy-actions"><button data-buddy-action="five" aria-label="Дать пять качку" title="Дать пять">✋</button><button data-buddy-action="flex" aria-label="Попросить качка показать бицепс" title="Показать базу">💪</button><button data-buddy-action="banana" aria-label="Дать банан качку" title="Угостить бананом">🍌</button><button data-buddy-action="chill" aria-label="Включить или выключить чилящий режим" title="Почиллить" aria-pressed="${chill}">🛋️</button></div><small class="buddy-hint">Тапни меня. Или зажми — я разомнусь.</small></section>`;
+export function buddyHTML({
+  sets = 0,
+  sessions = 0,
+  rest = false,
+  timer = false,
+} = {}) {
+  const chill = rest || (!timer && manualRest);
+  return `<section class="buddy ${chill ? "is-chilling" : "is-awake"}" data-buddy data-buddy-timer="${timer}" data-move="idle"><div class="buddy-heading"><span>Твой напарник</span></div><button class="buddy-stage" data-buddy-touch aria-label="Потрогать качка. Зажми, чтобы он размялся"><div class="buddy-art"><span class="buddy-sofa" aria-hidden="true"></span><div class="buddy-figure"><img src="./assets/buddy.webp" alt="Твой качок-напарник" width="174" height="290" draggable="false"></div><span class="buddy-zzz" aria-hidden="true"><i>z</i><i>z</i><i>z</i></span><span class="buddy-spark" aria-hidden="true">✦</span></div></button><div class="buddy-speech"><b data-buddy-line>${(chill ? REST : IDLE)[line % (chill ? REST : IDLE).length]}</b><p data-buddy-caption>${chill ? "Выдохни. База любит отдых." : `Подходы: ${sets}. Тренировки: ${sessions}.`}</p></div><div class="buddy-actions"><button data-buddy-action="five" aria-label="Дать пять качку" title="Дать пять">✋</button><button data-buddy-action="flex" aria-label="Попросить качка показать бицепс" title="Показать базу">💪</button><button data-buddy-action="banana" aria-label="Дать банан качку" title="Угостить бананом">🍌</button><button data-buddy-action="chill" aria-label="Включить или выключить чилящий режим" title="Почиллить" aria-pressed="${chill}">🛋️</button></div><small class="buddy-hint">Тапни меня. Или зажми — я разомнусь.</small></section>`;
 }
 export function refreshBuddyMood() {
   if (!api) return;
-  const chill = !!resting();
   for (const b of document.querySelectorAll("[data-buddy]")) {
+    const chill =
+      b.dataset.buddyTimer === "true" ? !!api.timerResting() : !!resting();
     const changed = b.classList.contains("is-chilling") !== chill;
     b.classList.toggle("is-chilling", chill);
     b.classList.toggle("is-awake", !chill);
@@ -43,7 +61,6 @@ export function refreshBuddyMood() {
       b.querySelector("[data-buddy-caption]").textContent = chill
         ? "Выдохни. База любит отдых."
         : api.stats();
-      b.querySelector(".buddy-orbit").textContent = chill ? "🍌" : "💪";
     }
   }
 }
@@ -58,18 +75,27 @@ function move(action, held = false) {
           "🍌 Принято. Горилла довольна.",
           "Банан — в гориллу, база — в дневник.",
           "🦍 О-о-о, бананчик!",
+          "Комплимент бицепсу принят.",
+          "Запас бананов растёт. База тоже.",
+          "Спасибо, шеф. Завтрак чемпиона.",
         ]
       : held
         ? [
             "Разогнулся. Согнулся. База на месте.",
             "🦍🦍🦍 Гориллы одобряют!",
             "Не щекочи бицепс, брат.",
+            "Гибкость есть. Теперь очередь дисциплины.",
+            "Размялся даже напарник. Твой ход.",
+            "Контрольный изгиб. Всё работает.",
           ]
         : action === "five"
           ? [
               "Есть контакт, брат! ✋",
               "Пять за старание. Ещё пять за базу.",
               "🐺 Стая своих не бросает.",
+              "Ладонь крепкая. Хват будет отличный.",
+              "Пятюня прилетела точно в цель.",
+              "Братская поддержка: плюс пять.",
             ]
           : chill
             ? REST
@@ -77,6 +103,9 @@ function move(action, held = false) {
                 "Оп! Контрольный бицепс.",
                 "🦍 База на месте.",
                 "Качок включён. Гориллы тоже.",
+                "Бицепс вышел на связь.",
+                "Это только разминка харизмы.",
+                "Без фильтров. Только база.",
               ];
   for (const b of document.querySelectorAll("[data-buddy]")) {
     b.dataset.move = "idle";
@@ -102,7 +131,6 @@ function move(action, held = false) {
           ? "🛋️"
           : "💪";
   api?.reaction(emoji);
-  if (held) api?.gorillas?.(30);
 }
 export function celebrateBuddy() {
   move("flex");
@@ -131,6 +159,7 @@ export function installBuddy(options) {
     if (event.button !== 0 || !event.target.closest("[data-buddy-touch]"))
       return;
     cancel();
+    swallow = false;
     gesture = setTimeout(() => {
       gesture = null;
       swallow = true;

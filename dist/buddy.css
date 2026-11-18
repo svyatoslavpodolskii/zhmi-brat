@@ -42,6 +42,7 @@
   transform-origin: 50% 82%;
   animation: buddy-idle 5.5s ease-in-out infinite;
   will-change: transform;
+  mix-blend-mode: multiply;
 }
 .buddy .buddy-figure img {
   height: 260px;
@@ -150,8 +151,8 @@
 .buddy[data-move="five"] .buddy-figure {
   animation: buddy-five 0.8s ease-in-out 1;
 }
-.buddy[data-move="banana"] .buddy-orbit {
-  animation: buddy-snack 0.9s ease-in-out 1;
+.buddy[data-move="banana"] .buddy-figure {
+  animation: buddy-five 0.9s ease-in-out 1;
 }
 .buddy[data-move="flex"] .buddy-spark,
 .buddy[data-move="bend"] .buddy-spark {
@@ -205,6 +206,68 @@
 }
 .buddy.is-chilling {
   background: #c6e2db;
+}
+.timer-card .buddy {
+  display: grid;
+  grid-template-columns: minmax(84px, 0.9fr) minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px;
+  margin-top: 12px;
+  text-align: left;
+  border-radius: 12px;
+}
+.timer-card .buddy-heading,
+.timer-card .buddy-actions,
+.timer-card .buddy-hint,
+.timer-card .buddy-speech p {
+  display: none;
+}
+.timer-card .buddy .buddy-art {
+  height: 112px;
+}
+.timer-card .buddy .buddy-figure img {
+  width: 72px;
+  height: 128px;
+  top: -4px;
+}
+.timer-card .buddy .buddy-speech {
+  align-self: center;
+  padding: 9px;
+}
+.timer-card .buddy .buddy-speech b {
+  font-size: 11px;
+}
+.timer-card .buddy .buddy-speech:before,
+.timer-card .buddy .buddy-art:before {
+  display: none;
+}
+.timer-card .buddy .buddy-sofa {
+  height: 27px;
+  border-bottom-width: 6px;
+  bottom: 8px;
+}
+.timer-card .buddy .buddy-sofa:before,
+.timer-card .buddy .buddy-sofa:after {
+  height: 24px;
+  width: 10px;
+  top: -8px;
+}
+.timer-card .buddy .buddy-zzz {
+  top: 6px;
+  right: -9px;
+  transform: scale(0.55);
+}
+.timer-card .buddy.is-chilling .buddy-figure {
+  animation: timer-buddy-chill 5.3s ease-in-out infinite;
+}
+@keyframes timer-buddy-chill {
+  0%,
+  100% {
+    transform: translate(0, 5px) rotate(-63deg) scale(0.65);
+  }
+  50% {
+    transform: translate(1px, 7px) rotate(-61deg) scale(0.66);
+  }
 }
 @keyframes buddy-idle {
   0%,

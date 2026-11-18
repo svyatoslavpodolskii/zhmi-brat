@@ -32,8 +32,15 @@ with sync_playwright() as p:
  pb.reload();pb.wait_for_load_state('networkidle');pb.locator('.bottom-nav [data-page="calendar"]').click();assert 'has-training' in pb.locator(f'[data-cal-date="{other}"]').get_attribute('class')
  assert not errors,errors
  pb.wait_for_function('document.querySelector("#connection-text").textContent.includes("Соединение установлено")',timeout=45000)
- pa.locator('.bottom-nav [data-page="room"]').click();pa.locator('[data-action="react"][data-emoji="🦍"]').click()
- for page in [pa,pb,pc]:page.wait_for_function('document.querySelectorAll(".gorilla-rain").length>=10',timeout=7000)
+ pa.locator('.bottom-nav [data-page="room"]').click();pa.locator('[data-action="react"][data-emoji="🦍"]').click(click_count=3,delay=90)
+ for page in [pa,pb,pc]:page.wait_for_function('document.querySelectorAll(".emoji-rain").length>=10',timeout=7000)
+ pa.wait_for_timeout(4400)
+ # A combo can also be assembled by three different participants.
+ for page in [pb,pc]:page.locator('.bottom-nav [data-page="room"]').click()
+ for page in [pa,pb,pc]:page.locator('[data-action="react"][data-emoji="🐺"]').click()
+ for page in [pa,pb,pc]:
+  page.wait_for_function('document.querySelectorAll(".emoji-rain").length>=10',timeout=7000)
+  assert page.locator('.emoji-rain').first.inner_text()=='🐺'
  print(json.dumps({'calendarP2P':'passed','members':3,'fullGroupMatch':True,'removedMark':True,'offline':True,'errors':errors}),flush=True)
  for context in contexts:context.close()
  browser.close()
