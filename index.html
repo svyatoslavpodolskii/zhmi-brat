@@ -7,6 +7,21 @@
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
     <meta name="theme-color" content="#315bdb" />
+    <script>
+      (() => {
+        let theme;
+        try {
+          theme = localStorage.getItem("zhmi:theme");
+        } catch {}
+        const dark =
+          theme === "dark" ||
+          (!theme && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+        if (dark)
+          document.querySelector('meta[name="theme-color"]').content =
+            "#142331";
+      })();
+    </script>
     <meta
       name="description"
       content="ЖМИ, БРАТ — умный тренировочный дневник. RPE, циклы, техника и совместные комнаты."
@@ -18,6 +33,7 @@
     <link rel="stylesheet" href="./calendar.css" />
     <link rel="stylesheet" href="./buddy.css" />
     <link rel="stylesheet" href="./refinements.css" />
+    <link rel="stylesheet" href="./theme.css" />
     <script defer src="./peerjs.min.js"></script>
     <script type="module" src="./app.js"></script>
   </head>

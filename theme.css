@@ -1,0 +1,281 @@
+.theme-toggle {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 44px;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
+  border-radius: 12px;
+  background: #e9eef9;
+}
+:root {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  color: #e1ebf3;
+  background: #101b26;
+  --blue: #9ab6ff;
+  --navy: #e1ebf3;
+  --muted: #a1b2c2;
+  --line: #344656;
+  --mint: #244d40;
+  --white: #1b2b3a;
+}
+:root[data-theme="dark"]
+  :is(
+    .sidebar,
+    .topbar,
+    .bottom-nav,
+    .panel,
+    .exercise,
+    .calendar-sheet,
+    .timer-card,
+    .calc-card,
+    dialog,
+    .buddy-speech,
+    .secondary,
+    .phase-tabs button.active,
+    .session-toolbar,
+    .exercise-tools,
+    .calculator,
+    .calc-result,
+    .tech-card
+  ) {
+  background: #1b2b3a;
+  color: #e1ebf3;
+  border-color: #344656;
+}
+:root[data-theme="dark"] :is(input, select, textarea) {
+  background: #142331;
+  color: #e1ebf3;
+  border-color: #4b6073;
+}
+:root[data-theme="dark"] input::placeholder {
+  color: #9eafbf;
+  opacity: 1;
+}
+:root[data-theme="dark"]
+  :is(
+    .panel p,
+    .day-person,
+    .bar-column > span,
+    .bar-column small,
+    .calendar-team small,
+    .calendar-hint,
+    .calendar-weekdays,
+    .calendar-summary span,
+    .calendar-legend,
+    .set-label,
+    .set-number,
+    .exercise-subtitle,
+    .plan-weight,
+    .original-note,
+    .breadcrumb,
+    code
+  ) {
+  color: #acbdce;
+}
+:root[data-theme="dark"]
+  :is(
+    .nav-item:hover,
+    .secondary:hover,
+    .theme-toggle,
+    .timer-control,
+    .calendar-month > button:not(.text-button),
+    .phase-tabs,
+    .session-day,
+    .calendar-team > span,
+    .calendar-day,
+    .sets-head,
+    .sets-header,
+    .set-row,
+    .plan-weight,
+    .set-field,
+    .rpe-table tr:nth-child(2n),
+    thead th,
+    .exercise-header,
+    .calc-tabs,
+    .explorer-controls
+  ) {
+  background: #23384b;
+  border-color: #344656;
+}
+:root[data-theme="dark"]
+  :is(
+    .sidebar nav button.active,
+    .calendar-modes button.active,
+    .calendar-day.has-training,
+    .note.blue,
+    .viewing,
+    .copy-exercise,
+    .device-notice
+  ) {
+  background: #293e64;
+  color: #c4d5ff;
+  border-color: #6987bf;
+}
+:root[data-theme="dark"]
+  :is(
+    .primary,
+    .brand-icon,
+    .bottom-nav button.active > span,
+    .set-check.checked
+  ) {
+  background: #426de4;
+  color: #fff;
+}
+:root[data-theme="dark"] :is(.primary:hover) {
+  background: #527cf1;
+}
+:root[data-theme="dark"] .warmup-panel {
+  background: #3b3020;
+  border-color: #75603b;
+}
+:root[data-theme="dark"]
+  :is(.warmup-panel b, .warmup-panel small, .warmup-panel p, .note) {
+  color: #e6c78d;
+}
+:root[data-theme="dark"] .note {
+  background: #3b3020;
+}
+:root[data-theme="dark"] .calendar-day.work-day {
+  background: repeating-linear-gradient(
+    135deg,
+    #3a3329,
+    #3a3329 5px,
+    #302b25 5px,
+    #302b25 10px
+  );
+  border-color: #75603b;
+}
+:root[data-theme="dark"] .calendar-day.done {
+  background: #254a3c;
+  border-color: #639e82;
+}
+:root[data-theme="dark"] .calendar-day.whole-team {
+  background: #30674f;
+  border-color: #8cceaa;
+}
+:root[data-theme="dark"]
+  :is(.calendar-day-status, .calendar-day.done .calendar-day-status) {
+  color: #b4d6ff;
+}
+:root[data-theme="dark"]
+  .calendar-day.is-today
+  .calendar-day-top
+  > span:first-child {
+  color: #b5ccff;
+}
+:root[data-theme="dark"] .schedule-strip {
+  background: #39324f;
+}
+:root[data-theme="dark"] .schedule-strip p {
+  color: #c3b4dd;
+}
+:root[data-theme="dark"] :is(.buddy, .buddy.is-chilling) {
+  background: #244b40;
+}
+:root[data-theme="dark"] :is(.buddy-heading, .buddy-hint, .buddy-speech p) {
+  color: #acd7c4;
+}
+:root[data-theme="dark"] .buddy-art {
+  background: #b9e5d1;
+  border-radius: 16px;
+}
+:root[data-theme="dark"] .buddy-speech:before {
+  background: #1b2b3a;
+}
+:root[data-theme="dark"] .buddy-actions button {
+  background: #365f52;
+}
+:root[data-theme="dark"] .buddy-actions [aria-pressed="true"] {
+  background: #655781;
+}
+:root[data-theme="dark"] .timer-digits {
+  color: #a6d6dd;
+}
+:root[data-theme="dark"] :is(.timer-options button, .reactions button) {
+  background: #23384b;
+  border-color: #4b6073;
+}
+:root[data-theme="dark"] .update-notice {
+  background: #243b61;
+  color: #eff4ff;
+  border-color: #6987bf;
+}
+:root[data-theme="dark"] .update-notice span {
+  color: #c2d1ea;
+}
+:root[data-theme="dark"] dialog::backdrop {
+  background: #050b12b8;
+}
+:root[data-theme="dark"] :is(th, td, .stats-strip) {
+  border-color: #344656;
+}
+:root[data-theme="dark"] .rpe-table th:first-child {
+  background: #293e64;
+}
+:root[data-theme="dark"] .loading {
+  background: #101b26;
+}
+.reaction-hint {
+  margin-top: 18px;
+}
+:root[data-theme="dark"]
+  :is(
+    .cycle-track button,
+    .day-tabs,
+    .set-check,
+    .body-label,
+    .exercise-number,
+    .tech-icon,
+    .emoji-code,
+    .device-choices .member,
+    .pairing-code,
+    .search-bar,
+    .tech-link
+  ) {
+  background: #23384b;
+  color: #c8d8e8;
+  border-color: #4b6073;
+}
+:root[data-theme="dark"]
+  :is(
+    .cycle-track button.active,
+    .day-tabs button.active,
+    .filter-tabs button.active
+  ) {
+  background: #293e64;
+  color: #d9e5ff;
+  border-color: #829fe1;
+}
+:root[data-theme="dark"] :is(.room-banner, .device-panel) {
+  background: #39324f;
+  color: #ede4ff;
+}
+:root[data-theme="dark"] :is(.room-banner p, .room-gorilla span) {
+  color: #c3b4dd;
+}
+:root[data-theme="dark"] .exercise-foot {
+  background: #142331;
+  border-color: #344656;
+}
+:root[data-theme="dark"] .cycle-track small {
+  color: #acbdce;
+}
+:root[data-theme="dark"] dialog p {
+  color: #acbdce;
+}
+@media (max-width: 350px) {
+  .theme-toggle {
+    flex-basis: 34px;
+    width: 34px;
+    font-size: 18px;
+  }
+  .topbar {
+    gap: 6px;
+  }
+}

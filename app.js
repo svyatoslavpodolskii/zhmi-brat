@@ -241,7 +241,7 @@ function appShell() {
     .join(
       "",
     )}</nav><div class="sidebar-bottom"><button data-action="cycles" class="cycle-link">↻ ${esc(c.name)}<span>Все циклы и архив</span></button><button data-action="profile" class="profile"><span class="avatar small">${esc(state.avatar)}</span><span>${esc(state.name)}<small>Твой личный дневник</small></span><span>⚙</span></button></div></aside>
- <div class="workspace"><header class="topbar"><button class="mobile-brand brand" data-action="nav" data-page="train" aria-label="ЖМИ, БРАТ — главная"><span class="brand-icon">жб</span><strong>ЖМИ,<br>БРАТ<span class="brand-dot">.</span></strong></button><div class="breadcrumb">Твоя качалка <span>/</span> ${labels[page]}</div><button data-action="nav" data-page="room" class="connection"><i class="${room?.connections.size ? "online" : ""}"></i><span id="connection-text">${esc(status)}</span></button><button class="avatar small" data-action="profile" aria-label="Профиль">${esc(state.avatar)}</button></header>
+ <div class="workspace"><header class="topbar"><button class="mobile-brand brand" data-action="nav" data-page="train" aria-label="ЖМИ, БРАТ — главная"><span class="brand-icon">жб</span><strong>ЖМИ,<br>БРАТ<span class="brand-dot">.</span></strong></button><div class="breadcrumb">Твоя качалка <span>/</span> ${labels[page]}</div><button data-action="nav" data-page="room" class="connection"><i class="${room?.connections.size ? "online" : ""}"></i><span id="connection-text">${esc(status)}</span></button><button class="theme-toggle" data-action="theme" aria-label="${document.documentElement.dataset.theme === "dark" ? "Включить светлую тему" : "Включить тёмную тему"}" aria-pressed="${document.documentElement.dataset.theme === "dark"}">${document.documentElement.dataset.theme === "dark" ? "☀️" : "🌙"}</button><button class="avatar small" data-action="profile" aria-label="Профиль">${esc(state.avatar)}</button></header>
  <div class="content"><main id="main" tabindex="-1">${!own() ? `<div class="viewing">${esc(person().avatar)} Дневник ${esc(person().name)} · только просмотр <div class="viewing-actions"><button data-action="copy-exercises-open">Взять упражнения</button><button data-action="own">К моему</button></div></div>` : ""}${deviceNotice()}${page === "train" ? training(p) : page === "calendar" ? calendarView.html() : page === "progress" ? progress() : page === "room" ? roomPage() : page === "tech" ? techPage() : page === "calc" ? calculator() : helpPage()}</main><aside class="rightbar">${buddy()}${timerCard()}${roomMini()}</aside></div>
  <footer class="app-footer"><button data-action="nav" data-page="help">Справка и источники</button></footer></div>
  <nav class="bottom-nav" aria-label="Мобильная навигация">${["train", "calendar", "progress", "room", "tech", "calc"].map((k) => `<button data-action="nav" data-page="${k}" class="${page === k ? "active" : ""}"><span>${icons[k]}</span>${labels[k]}</button>`).join("")}</nav><button class="floating-timer" data-action="timer-open" aria-label="Таймер отдыха">◷ <span id="mobile-time">Отдых</span></button>`;
@@ -348,13 +348,13 @@ function buddy() {
   return buddyHTML({
     sets: logs.length,
     sessions: done,
-    rest: !!(deadline || paused || cycle().position?.phase === "rest"),
+    rest: cycle().position?.phase === "rest",
   });
 }
 let deadline = Number(localStorage.getItem("zhmi:timer") || 0),
   paused = 0;
 function timerCard() {
-  return `<section class="timer-card"><div><h3>Между подходами</h3><span>Отдых — часть программы</span></div><div class="timer-digits" id="timer-time">03:00</div><div class="timer-options">${[3, 5, 8, 10].map((n) => `<button data-action="timer" data-min="${n}">${n} мин</button>`).join("")}</div><button class="timer-control" data-action="timer-toggle">${deadline ? "Пауза" : "Запустить 3 минуты"}</button><button class="text-button" data-action="timer-stop">Сбросить</button></section>`;
+  return `<section class="timer-card"><div><h3>Между подходами</h3><span>Отдых — часть программы</span></div>${buddyHTML({ timer: true, rest: !!(deadline || paused) })}<div class="timer-digits" id="timer-time">03:00</div><div class="timer-options">${[3, 5, 8, 10].map((n) => `<button data-action="timer" data-min="${n}">${n} мин</button>`).join("")}</div><button class="timer-control" data-action="timer-toggle">${deadline ? "Пауза" : "Запустить 3 минуты"}</button><button class="text-button" data-action="timer-stop">Сбросить</button></section>`;
 }
 function roomMini() {
   const members = room?.access.members() || [];
@@ -513,7 +513,7 @@ function roomPage() {
     })
     .join(
       "",
-    )}</div></section><section class="panel"><h2>Совместный тренировочный объём</h2>${members.some((p) => p.cycles?.some((c) => summary(c).sets)) ? barChart(members.map((p) => ({ label: p.name, value: p.cycles?.reduce((n, c) => n + summary(c).volume, 0) || 0 }))) : empty("🤝", "Первый подход за кем?", "График сравнит записанный объём всех участников комнаты.")}<div class="reactions">${["🦍", "💪", "🍌", "🐺", "🔥", "🦧"].map((e) => `<button data-action="react" data-emoji="${e}" aria-label="Отправить ${e}">${e}</button>`).join("")}</div></section><details class="panel"><summary>Как работает синхронизация</summary><p>Результаты хранятся в браузере и передаются между открытыми вкладками участников через WebRTC (PeerJS). Сервер сигнализации помогает установить связь. Историю уже встречавшихся участников можно просматривать офлайн.</p><p>Для первой встречи и получения новых записей откройте комнату одновременно. Когда участник закроет вкладку, его устройство не принимает обновления. После возвращения копии сверяются по подписанным версиям.</p><p>Код даёт доступ к дневникам комнаты. Не публикуйте приглашение, если хотите оставить их в кругу друзей. В некоторых сетях прямое соединение недоступно; данные сохраняются локально, статус связи показан сверху.</p><button class="text-button" data-action="reconnect">Переподключить комнату</button></details>`;
+    )}</div></section><section class="panel"><h2>Совместный тренировочный объём</h2>${members.some((p) => p.cycles?.some((c) => summary(c).sets)) ? barChart(members.map((p) => ({ label: p.name, value: p.cycles?.reduce((n, c) => n + summary(c).volume, 0) || 0 }))) : empty("🤝", "Первый подход за кем?", "График сравнит записанный объём всех участников комнаты.")}<p class="reaction-hint">Три быстрых нажатия одной реакции — дождь для всей комнаты.</p><div class="reactions">${["🦍", "💪", "🍌", "🐺", "🔥", "🦧"].map((e) => `<button data-action="react" data-emoji="${e}" aria-label="Отправить ${e}">${e}</button>`).join("")}</div></section><details class="panel"><summary>Как работает синхронизация</summary><p>Результаты хранятся в браузере и передаются между открытыми вкладками участников через WebRTC (PeerJS). Сервер сигнализации помогает установить связь. Историю уже встречавшихся участников можно просматривать офлайн.</p><p>Для первой встречи и получения новых записей откройте комнату одновременно. Когда участник закроет вкладку, его устройство не принимает обновления. После возвращения копии сверяются по подписанным версиям.</p><p>Код даёт доступ к дневникам комнаты. Не публикуйте приглашение, если хотите оставить их в кругу друзей. В некоторых сетях прямое соединение недоступно; данные сохраняются локально, статус связи показан сверху.</p><button class="text-button" data-action="reconnect">Переподключить комнату</button></details>`;
 }
 function techPage() {
   const list = data.links
@@ -842,7 +842,7 @@ function finish() {
     c.done.push(key);
     commit();
     toast("Тренировка завершена. Хорош, брат!");
-    gorillaRain(40);
+    emojiRain("💪", 40);
   }
   const next = nextPosition(p);
   if (next) {
@@ -860,7 +860,7 @@ function cyclesModal(completed = false) {
 }
 function profileModal() {
   modal(
-    `<h2>Это ты, брат</h2><form id="profile-form"><label class="field"><span>Как тебя зовут?</span><input name="name" maxlength="32" required value="${esc(state.name)}"></label><label class="field"><span>Твой зверь</span><span class="avatar-picker">${["🦍", "🐺", "🦧", "🐒"].map((emoji) => `<button type="button" data-action="quick-avatar" data-avatar="${emoji}" aria-label="Выбрать ${emoji}">${emoji}</button>`).join("")}</span><select name="avatar">${EMOJIS.map((e) => `<option ${state.avatar === e ? "selected" : ""}>${e}</option>`).join("")}</select></label><button class="primary">Сохранить профиль</button></form><hr><h3>Устройства и обновления</h3><div class="button-row"><button class="secondary" data-action="devices">Мои устройства</button><button class="secondary" data-check-updates>Проверить обновления</button></div><p class="muted">Версия ${APP_VERSION}. При выходе новой версии появится кнопка «Обновиться».</p><h3>Резервная копия</h3><p>История хранится на этом устройстве. Экспортируй её перед очисткой браузера или переносом на другой телефон.</p><div class="button-row"><button class="secondary" data-action="export">Скачать JSON</button><label class="secondary file-label">Восстановить<input type="file" id="import-file" accept="application/json" hidden></label></div><p class="muted">В копии — твои тренировки и коды комнат. Личный ключ подписи остаётся на устройстве. На другом устройстве импорт создаст дневник с его собственной подписью.</p>`,
+    `<h2>Это ты, брат</h2><form id="profile-form"><label class="field"><span>Как тебя зовут?</span><input name="name" maxlength="32" required value="${esc(state.name)}"></label><label class="field"><span>Аватар</span><select name="avatar">${EMOJIS.map((e) => `<option ${state.avatar === e ? "selected" : ""}>${e}</option>`).join("")}</select></label><button class="primary">Сохранить профиль</button></form><hr><h3>Устройства и обновления</h3><div class="button-row"><button class="secondary" data-action="devices">Мои устройства</button><button class="secondary" data-check-updates>Проверить обновления</button></div><p class="muted">Версия ${APP_VERSION}. При выходе новой версии появится кнопка «Обновиться».</p><h3>Резервная копия</h3><p>История хранится на этом устройстве. Экспортируй её перед очисткой браузера или переносом на другой телефон.</p><div class="button-row"><button class="secondary" data-action="export">Скачать JSON</button><label class="secondary file-label">Восстановить<input type="file" id="import-file" accept="application/json" hidden></label></div><p class="muted">В копии — твои тренировки и коды комнат. Личный ключ подписи остаётся на устройстве. На другом устройстве импорт создаст дневник с его собственной подписью.</p>`,
   );
 }
 function exerciseModal(row) {
@@ -1006,8 +1006,7 @@ function changeRoom(code, mode = "new") {
   )
     room.access.mode = "existing";
   localStorage.setItem("zhmi:entry-mode:" + room.code, room.access.mode);
-  room.onReaction = (emoji) =>
-    emoji === "🦍" ? gorillaRain(36) : reaction(emoji);
+  room.onReaction = roomReaction;
   room.publish(structuredClone(state));
 }
 function historyReplace(u) {
@@ -1020,12 +1019,24 @@ function reaction(emoji) {
   document.querySelector("#reactions").append(el);
   setTimeout(() => el.remove(), 2000);
 }
-let nextGorillaRain = 0;
-function gorillaRain(count = 30) {
-  if (Date.now() < nextGorillaRain) return;
-  nextGorillaRain = Date.now() + 1800;
+const reactionRuns = new Map();
+function roomReaction(emoji) {
+  const now = Date.now(),
+    previous = reactionRuns.get(emoji);
+  const count = previous && now - previous.at < 1500 ? previous.count + 1 : 1;
+  reactionRuns.set(emoji, { at: now, count });
+  reaction(emoji);
+  if (count >= 3) {
+    reactionRuns.delete(emoji);
+    emojiRain(emoji, 36);
+  }
+}
+let nextRain = 0;
+function emojiRain(emoji, count = 30) {
+  if (Date.now() < nextRain) return;
+  nextRain = Date.now() + 1800;
   if (matchMedia("(prefers-reduced-motion:reduce)").matches) {
-    toast("🦍🦍🦍 Гориллы аплодируют!");
+    toast(`${emoji}${emoji}${emoji} Команда поддерживает!`);
     return;
   }
   const layer = document.querySelector("#reactions");
@@ -1033,8 +1044,8 @@ function gorillaRain(count = 30) {
     setTimeout(() => {
       if (layer.children.length > 65) return;
       const el = document.createElement("span");
-      el.className = "gorilla-rain";
-      el.textContent = "🦍";
+      el.className = "emoji-rain";
+      el.textContent = emoji;
       const duration = 2200 + Math.random() * 1000;
       el.style.left = Math.random() * 95 + "%";
       el.style.fontSize = 25 + Math.random() * 28 + "px";
@@ -1059,7 +1070,7 @@ function updateTimer() {
     deadline = 0;
     localStorage.removeItem("zhmi:timer");
     toast("Отдых окончен. Готов к подходу?");
-    gorillaRain(28);
+    emojiRain("🔥", 28);
     const control = document.querySelector(".timer-control");
     if (control) control.textContent = "Запустить 3 минуты";
   }
@@ -1073,9 +1084,19 @@ document.addEventListener("click", async (event) => {
   if (a === "close") {
     dialog.close();
     render();
-  } else if (a === "quick-avatar") {
-    const form = document.querySelector("#profile-form");
-    if (form) form.elements.avatar.value = b.dataset.avatar;
+  } else if (a === "theme") {
+    const dark = document.documentElement.dataset.theme !== "dark";
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    localStorage.setItem("zhmi:theme", dark ? "dark" : "light");
+    document.querySelector('meta[name="theme-color"]').content = dark
+      ? "#142331"
+      : "#315bdb";
+    b.textContent = dark ? "☀️" : "🌙";
+    b.setAttribute("aria-pressed", String(dark));
+    b.setAttribute(
+      "aria-label",
+      dark ? "Включить светлую тему" : "Включить тёмную тему",
+    );
   } else if (a.startsWith("cal-")) {
     if (a === "cal-remove-schedule") {
       state.calendar ??= { training: {}, workOverrides: {} };
@@ -1515,9 +1536,9 @@ window.addEventListener("storage", (event) => {
 });
 const inviteCode = new URLSearchParams(location.hash.slice(1)).get("room");
 installBuddy({
-  resting: () => !!(deadline || paused || cycle().position?.phase === "rest"),
+  resting: () => cycle().position?.phase === "rest",
+  timerResting: () => !!(deadline || paused),
   reaction,
-  gorillas: gorillaRain,
   toast,
   stats: () =>
     `Подходы: ${Object.keys(cycle().logs || {}).length}. Тренировки: ${cycle().done?.length || 0}.`,

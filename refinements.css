@@ -605,15 +605,15 @@
     margin-top: 16px;
   }
 }
-#reactions > .gorilla-rain {
+#reactions > .emoji-rain {
   top: -65px;
   bottom: auto;
   line-height: 1;
-  animation: gorilla-rain var(--fall-duration, 2600ms) linear forwards;
+  animation: emoji-rain var(--fall-duration, 2600ms) linear forwards;
   will-change: transform;
   filter: drop-shadow(0 3px 2px #16334716);
 }
-@keyframes gorilla-rain {
+@keyframes emoji-rain {
   0% {
     transform: translate3d(0, -65px, 0) rotate(-20deg);
     opacity: 0;
@@ -631,7 +631,7 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  #reactions > .gorilla-rain {
+  #reactions > .emoji-rain {
     display: none;
   }
 }
