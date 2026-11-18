@@ -1,3 +1,5 @@
+import { DeviceAccess } from "./devices.js";
+import { mergeDiaries } from "./sync-state.js";
 export const EMOJIS = [
   "💪",
   "🐻",
@@ -59,14 +61,22 @@ export function validDiary(p) {
     !Array.isArray(p.cycles) ||
     !p.cycles.length ||
     p.cycles.length > 100 ||
-    typeof p.activeCycle !== "string"
+    typeof p.activeCycle !== "string" ||
+    (p.recoveryEnabled !== undefined &&
+      typeof p.recoveryEnabled !== "boolean") ||
+    (p.recoveryMembers !== undefined &&
+      (!Array.isArray(p.recoveryMembers) ||
+        p.recoveryMembers.length > 64 ||
+        !p.recoveryMembers.every(
+          (id) => typeof id === "string" && /^[a-f0-9]{64}$/.test(id),
+        )))
   )
     return false;
   return p.cycles.every(
     (c) =>
       obj(c) &&
       typeof c.id === "string" &&
-      c.id.length <= 100 &&
+      /^[a-zA-Z0-9-]{1,100}$/.test(c.id) &&
       typeof c.name === "string" &&
       c.name.length <= 100 &&
       Number.isFinite(c.createdAt) &&
@@ -166,6 +176,7 @@ export class Room {
     this.started = false;
     this.peers = new Set();
     this.online = new Set([ident.id]);
+    this.access = new DeviceAccess(this);
     this.signing = Promise.resolve();
     try {
       this.records =
@@ -184,6 +195,7 @@ export class Room {
     if (this.stopped) return;
     this.claim();
     this.interval = setInterval(() => {
+      this.lastTick = Date.now();
       if (!navigator.onLine) {
         this.onStatus("Офлайн · записи сохранены");
         return;
@@ -223,7 +235,10 @@ export class Room {
       return this.onStatus("Офлайн · записи сохранены");
     if (!window.Peer)
       return this.onStatus("Связь недоступна · можно тренироваться");
-    for (const c of this.connections.values()) c.close();
+    for (const c of this.connections.values()) {
+      clearTimeout(c.connectionTimeout);
+      c.close();
+    }
     this.connections.clear();
     this.peer?.destroy();
     this.isHub = true;
@@ -269,17 +284,26 @@ export class Room {
     if (this.stopped || !this.peer?.open || this.connections.has(this.prefix))
       return;
     this.attach(
-      this.peer.connect(this.prefix, { reliable: true, serialization: "json" }),
+      this.peer.connect(this.prefix, {
+        reliable: true,
+        serialization: "binary",
+      }),
     );
   }
   attach(c) {
     this.connections.set(c.peer, c);
+    const ownerPeer = this.peer;
     const timeout = setTimeout(() => {
       if (!c.open) {
         c.close();
-        this.connections.delete(c.peer);
+        if (this.connections.get(c.peer) === c) this.connections.delete(c.peer);
+        if (!this.stopped && !this.isHub && this.peer === ownerPeer) {
+          this.onStatus("Пробуем соединиться заново…");
+          this.claim();
+        }
       }
     }, 10000);
+    c.connectionTimeout = timeout;
     c.on("open", () => {
       c.lastSeen = Date.now();
       clearTimeout(timeout);
@@ -288,6 +312,7 @@ export class Room {
         sender: this.ident.id,
         online: [...this.online],
         records: Object.values(this.records),
+        ...this.access.packet(),
       });
       this.onStatus("Соединение установлено");
     });
@@ -298,7 +323,7 @@ export class Room {
         return;
       }
       if (m?.type === "pong") return;
-      if (!m || JSON.stringify(m).length > 2000000) return;
+      if (!m || JSON.stringify(m).length > 4000000) return;
       if (m.type === "sync" && Array.isArray(m.records)) {
         let changed = false;
         for (const rec of m.records.slice(0, 64))
@@ -307,6 +332,14 @@ export class Room {
             if (this.isHub)
               this.broadcast({ type: "sync", records: [rec] }, c.peer);
           }
+        if (await this.access.receive(m)) {
+          changed = true;
+          if (this.isHub)
+            this.broadcast(
+              { type: "sync", records: Object.values(this.records) },
+              c.peer,
+            );
+        }
         if (changed) {
           this.persist();
           this.onChange();
@@ -335,8 +368,24 @@ export class Room {
         this.onStatus(
           this.isHub ? "Вы в комнате · ждём друзей" : "Напарники не в сети",
         );
+      if (!this.stopped && !this.isHub && !this.connections.size) {
+        clearTimeout(this.connectionRetry);
+        this.connectionRetry = setTimeout(
+          () => {
+            if (
+              !this.stopped &&
+              this.peer === ownerPeer &&
+              !this.isHub &&
+              !this.connections.size
+            )
+              this.claim();
+          },
+          600 + Math.random() * 1000,
+        );
+      }
     });
     c.on("error", () => {
+      this.lastConnectionError = "Data channel error";
       c.close();
     });
   }
@@ -364,6 +413,24 @@ export class Room {
       )
         return false;
       if ((this.records[p.id]?.payload.rev ?? -1) >= p.rev) return false;
+      if (p.registers) {
+        if (
+          typeof p.registers !== "object" ||
+          Array.isArray(p.registers) ||
+          Object.keys(p.registers).length > 50000 ||
+          !Object.values(p.registers).every(
+            (r) =>
+              r &&
+              Number.isSafeInteger(r.n) &&
+              r.n >= 0 &&
+              typeof r.d === "string" &&
+              /^[a-f0-9]{64}$/.test(r.d) &&
+              (r.deleted === true || Object.hasOwn(r, "v")),
+          ) ||
+          !validDiary(mergeDiaries([p]))
+        )
+          return false;
+      }
       const pub = await crypto.subtle.importKey(
         "jwk",
         rec.public,
@@ -390,7 +457,7 @@ export class Room {
   }
   publish(payload) {
     this.signing = this.signing.then(async () => {
-      if (this.stopped) return;
+      if (this.stopped || this.access.mode === "existing") return;
       const p = { ...payload, room: this.code, id: this.ident.id };
       const signature = b64(
         await crypto.subtle.sign(
@@ -407,6 +474,7 @@ export class Room {
     return this.signing;
   }
   broadcast(m, except) {
+    if (m.type === "sync") m = { ...m, ...this.access.packet() };
     m = {
       ...m,
       sender: this.ident.id,
@@ -415,8 +483,14 @@ export class Room {
     for (const c of this.connections.values())
       if (c.open && c.peer !== except) {
         try {
+          this.lastWireBytes = new TextEncoder().encode(
+            JSON.stringify(m),
+          ).length;
+          this.lastMaxMessageSize = c.peerConnection?.sctp?.maxMessageSize;
           c.send(m);
-        } catch {}
+        } catch (e) {
+          this.lastConnectionError = e.message;
+        }
       }
   }
   react(emoji) {
@@ -444,6 +518,7 @@ export class Room {
     this.stopped = true;
     clearInterval(this.interval);
     clearTimeout(this.retry);
+    clearTimeout(this.connectionRetry);
     this.peer?.destroy();
     window.removeEventListener("online", this.onOnline);
     document.removeEventListener("visibilitychange", this.onVisible);

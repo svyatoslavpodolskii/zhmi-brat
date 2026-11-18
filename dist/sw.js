@@ -1,4 +1,4 @@
-const CACHE = "zhmi-brat-v1";
+const CACHE = "zhmi-brat-v1.1.0";
 const ASSETS = [
   "./",
   "./index.html",
@@ -7,6 +7,10 @@ const ASSETS = [
   "./state.js",
   "./engine.js",
   "./rooms.js",
+  "./devices.js",
+  "./sync-state.js",
+  "./updates.js",
+  "./version.json",
   "./workbook.json",
   "./peerjs.min.js",
   "./icon.svg",
@@ -19,9 +23,13 @@ self.addEventListener("install", (e) => {
   e.waitUntil(
     caches
       .open(CACHE)
-      .then((c) => c.addAll(ASSETS))
-      .then(() => self.skipWaiting()),
+      .then((c) =>
+        c.addAll(ASSETS.map((url) => new Request(url, { cache: "reload" }))),
+      ),
   );
+});
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 self.addEventListener("activate", (e) => {
   e.waitUntil(
@@ -40,11 +48,12 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   if (
     e.request.method !== "GET" ||
-    new URL(e.request.url).origin !== location.origin
+    new URL(e.request.url).origin !== location.origin ||
+    new URL(e.request.url).pathname.endsWith("/version.json")
   )
     return;
   e.respondWith(
-    fetch(e.request)
+    fetch(new Request(e.request, { cache: "no-store" }))
       .then((r) => {
         if (r.ok) {
           const copy = r.clone();

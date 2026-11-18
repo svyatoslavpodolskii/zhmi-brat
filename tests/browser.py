@@ -16,6 +16,12 @@ with sync_playwright() as p:
   page.locator(f'[data-cell="{addr}"]').fill(str(value));page.locator(f'[data-cell="{addr}"]').press('Tab')
  fill_cell('F77',76);fill_cell('G77',4);page.locator('[data-cell="H77"]').select_option('10')
  assert page.locator('[data-cell="I77"]').get_attribute('placeholder')=='67,5'
+ # Rounding is visible in every exercise, with immediate recalculation.
+ assert page.locator('.exercise [data-round="77"]').is_visible()
+ page.locator('.exercise [data-round="77"]').select_option('1')
+ assert page.locator('[data-cell="I77"]').get_attribute('placeholder')=='68'
+ page.locator('.exercise [data-round="77"]').select_option('2.5')
+ assert page.locator('[data-cell="I77"]').get_attribute('placeholder')=='67,5'
  assert page.locator('[data-cell="O77"]').count()==0
  page.locator('[data-action="log"][data-slot="77"][data-set="0"]').click()
  assert page.locator('[data-action="log"][data-slot="77"][data-set="0"]').get_attribute('class').find('checked')>=0

@@ -1,5 +1,7 @@
 import { WorkbookEngine, colName } from "./engine.js";
 import { Room, identity, EMOJIS, validDiary } from "./rooms.js";
+import { stampChanges, mergeDiaries, sameRegisters } from "./sync-state.js";
+import { initUpdates, APP_VERSION } from "./updates.js";
 import {
   MAIN,
   dayRows,
@@ -28,6 +30,10 @@ let state = initialState(),
   calcMode = "rpe",
   explorerSheet = 0,
   explorerFrom = 1;
+state.recoveryEnabled ??= true;
+if (!state.registers) stampChanges(null, state, ident.id);
+let committedState = structuredClone(state);
+const memberId = (id) => room?.access.canonical(id) || id;
 const app = document.querySelector("#app"),
   dialog = document.querySelector("#dialog");
 const esc = (s) =>
@@ -42,10 +48,10 @@ const fmt = (v) =>
   typeof v === "number"
     ? Number(v.toFixed(2)).toLocaleString("ru-RU")
     : (v ?? "—");
-const own = () => viewId === ident.id;
+const own = () => memberId(viewId) === memberId(ident.id);
 const remotePositions = {};
 function person() {
-  return own() ? state : room?.records[viewId]?.payload || state;
+  return own() ? state : room?.access.member(viewId) || state;
 }
 function cycle() {
   const s = person();
@@ -133,6 +139,8 @@ function copyExercisesModal() {
 function commit() {
   if (!own()) return;
   state.rev = Math.max(Date.now(), state.rev + 1);
+  stampChanges(committedState, state, ident.id);
+  committedState = structuredClone(state);
   try {
     localStorage.setItem("zhmi:state", JSON.stringify(state));
   } catch {
@@ -194,7 +202,7 @@ function appShell() {
       "",
     )}</nav><div class="sidebar-bottom"><button data-action="cycles" class="cycle-link">↻ ${esc(c.name)}<span>Все циклы и архив</span></button><button data-action="profile" class="profile"><span class="avatar small">${esc(state.avatar)}</span><span>${esc(state.name)}<small>Твой личный дневник</small></span><span>⚙</span></button></div></aside>
  <div class="workspace"><header class="topbar"><div class="mobile-brand">💪 <b>ЖМИ, БРАТ.</b></div><div class="breadcrumb">Твоя качалка <span>/</span> ${labels[page]}</div><button data-action="nav" data-page="room" class="connection"><i class="${room?.connections.size ? "online" : ""}"></i><span id="connection-text">${esc(status)}</span></button><button class="avatar small" data-action="profile" aria-label="Профиль">${esc(state.avatar)}</button></header>
- <div class="content"><main id="main" tabindex="-1">${!own() ? `<div class="viewing">${esc(person().avatar)} Дневник ${esc(person().name)} · только просмотр <div class="viewing-actions"><button data-action="copy-exercises-open">Взять упражнения</button><button data-action="own">К моему</button></div></div>` : ""}${page === "train" ? training(p) : page === "progress" ? progress() : page === "room" ? roomPage() : page === "tech" ? techPage() : page === "calc" ? calculator() : helpPage()}</main><aside class="rightbar">${buddy()}${timerCard()}${roomMini()}</aside></div>
+ <div class="content"><main id="main" tabindex="-1">${!own() ? `<div class="viewing">${esc(person().avatar)} Дневник ${esc(person().name)} · только просмотр <div class="viewing-actions"><button data-action="copy-exercises-open">Взять упражнения</button><button data-action="own">К моему</button></div></div>` : ""}${deviceNotice()}${page === "train" ? training(p) : page === "progress" ? progress() : page === "room" ? roomPage() : page === "tech" ? techPage() : page === "calc" ? calculator() : helpPage()}</main><aside class="rightbar">${buddy()}${timerCard()}${roomMini()}</aside></div>
  <footer>На основе «Умной Проги 8.0 (RPE)» · <a href="https://boosty.to/yetiblog" target="_blank" rel="noopener">Evolution Yeti</a><button data-action="nav" data-page="help">Формулы и источник</button></footer></div>
  <nav class="bottom-nav" aria-label="Мобильная навигация">${["train", "progress", "room", "tech", "calc"].map((k) => `<button data-action="nav" data-page="${k}" class="${page === k ? "active" : ""}"><span>${icons[k]}</span>${labels[k]}</button>`).join("")}</nav><button class="floating-timer" data-action="timer-open" aria-label="Таймер отдыха">◷ <span id="mobile-time">Отдых</span></button>`;
   updateTimer();
@@ -289,7 +297,7 @@ function exercise(slot, p, i) {
         sets += `<p class="missing">${g ? "Для добивочного веса укажи RPE основного блока." : "Для рабочего веса заполни тест или RPE предыдущей недели."}</p>`;
     }
   }
-  return `<article class="exercise"><header class="exercise-header"><span class="exercise-number">${i + 1}</span><div>${config}<p>${p.phase === "prep" ? esc(result(e, "C" + slot.row) || "Первый рабочий подход") + " · RPE " + esc(result(e, "D" + slot.row) || "7–9") : body ? "Собственный вес" : "Авторегуляция по RPE"}</p></div><button class="exercise-info" data-action="exercise-info" data-slot="${slot.row}" aria-label="Настройки и формулы ${slot.row}">···</button></header><div class="sets">${sets}</div><div class="exercise-foot"><button data-action="tech-for" data-name="${esc(name.trim())}">↗ Техника</button><span>Шаг ${fmt(round)} ${body && p.phase !== "prep" ? "повт." : "кг"}</span></div></article>`;
+  return `<article class="exercise"><header class="exercise-header"><span class="exercise-number">${i + 1}</span><div>${config}<p>${p.phase === "prep" ? esc(result(e, "C" + slot.row) || "Первый рабочий подход") + " · RPE " + esc(result(e, "D" + slot.row) || "7–9") : body ? "Собственный вес" : "Авторегуляция по RPE"}</p></div><button class="exercise-info" data-action="exercise-info" data-slot="${slot.row}" aria-label="Настройки и формулы ${slot.row}">···</button></header><div class="sets">${sets}</div><div class="exercise-foot"><button data-action="tech-for" data-name="${esc(name.trim())}">↗ Техника</button><label class="rounding-control"><span>${body && p.phase !== "prep" ? "Прибавка, повт." : "Шаг округления, кг"}</span><select data-round="${slot.row}" aria-label="Шаг округления ${slot.row}" ${own() ? "" : "disabled"}>${[1, 2, 2.5, 3, 5].map((n) => `<option value="${n}" ${round === n ? "selected" : ""}>${fmt(n)}</option>`).join("")}</select></label></div></article>`;
 }
 function buddy() {
   const logs = Object.values(cycle().logs || {}),
@@ -302,7 +310,7 @@ function timerCard() {
   return `<section class="timer-card"><div><h3>Между подходами</h3><span>Отдых — часть программы</span></div><div class="timer-digits" id="timer-time">03:00</div><div class="timer-options">${[3, 5, 8, 10].map((n) => `<button data-action="timer" data-min="${n}">${n} мин</button>`).join("")}</div><button class="timer-control" data-action="timer-toggle">${deadline ? "Пауза" : "Запустить 3 минуты"}</button><button class="text-button" data-action="timer-stop">Сбросить</button></section>`;
 }
 function roomMini() {
-  const members = Object.values(room?.records || {}).map((r) => r.payload);
+  const members = room?.access.members() || [];
   return `<section class="mini-room"><div class="section-line"><h3>Братская комната</h3><span>${members.length || 1}</span></div><div class="avatar-stack">${
     members
       .slice(0, 5)
@@ -383,14 +391,78 @@ function exerciseStats(logs) {
 function empty(emoji, title, text) {
   return `<div class="empty"><span>${emoji}</span><h3>${title}</h3><p>${text}</p></div>`;
 }
+function devicePanel() {
+  if (!room) return "";
+  const access = room.access;
+  if (access.mode === "existing") {
+    const req = access.ownRequest,
+      approved = access.approved;
+    return `<section class="panel device-panel"><h2>${approved ? "Устройство подтверждено" : req ? "Подтверди новое устройство" : "Войти в свой профиль"}</h2>${
+      req
+        ? `<p>Профиль: <b>${esc(access.member(req.payload.target)?.name || "Участник")}</b>. Сравни этот код с устройством, которое подтверждает вход.</p><div class="pairing-code">${esc(access.codes[req.payload.requestId] || "Проверяем код…")}</div><p>${approved ? "Разрешение получено. Подтверди, что это твой профиль." : "На своём активном устройстве открой эту комнату и подтверди запрос. Если устройство потеряно, это может сделать знакомый участник, которому профиль уже разрешал восстановление."}</p>${approved ? '<button class="primary" data-action="confirm-device">Это мой профиль, подключить</button>' : '<span class="pill">Ждём подтверждение · запрос действует 10 минут</span>'}`
+        : `<p>Выбери себя. Чужой дневник не станет твоим без подтверждения.</p><div class="device-choices">${
+            access
+              .members()
+              .filter((p) => p.id !== ident.id)
+              .map(
+                (p) =>
+                  `<button class="member" data-action="request-device" data-id="${esc(p.id)}"><span class="avatar">${esc(p.avatar)}</span><b>${esc(p.name)}</b><span>Это я</span></button>`,
+              )
+              .join("") ||
+            '<p class="muted">Пока никого не видно. Открой комнату на своём устройстве или устройстве знакомого участника.</p>'
+          }</div>`
+    }${req && !approved && req.payload.expiresAt < Date.now() ? '<button class="secondary" data-action="renew-device">Запросить новый код</button>' : ""}<button class="text-button" data-action="${req ? "postpone-device" : "cancel-device"}">${req ? "Отложить подключение" : "Войти как новый участник"}</button></section>`;
+  }
+  const requests = Object.values(access.requests).filter(
+    (r) =>
+      r.payload.expiresAt > Date.now() &&
+      !access.links[r.payload.requester] &&
+      access.canApprove(r),
+  );
+  if (!requests.length) return "";
+  return `<section class="panel device-panel"><h2>Запросы на вход</h2>${requests.map((r) => `<div class="device-request"><h3>${esc(access.member(r.payload.target)?.name)} · ${esc(r.payload.label)}</h3><div class="pairing-code">${esc(access.codes[r.payload.requestId] || "…")}</div><p>${access.ownId === r.payload.target ? "Подтверди, если этот же код показан на твоём втором устройстве." : "Восстановление через участника комнаты. Сверьте код лично или в вашем обычном чате. Подтверждение даст доступ ко всему дневнику этого профиля."}</p><button class="primary" data-action="approve-device" data-request="${esc(r.payload.requestId)}">${access.ownId === r.payload.target ? "Подтвердить своё устройство" : "Помочь восстановить профиль"}</button></div>`).join("")}</section>`;
+}
+function deviceNotice() {
+  if (!room || page === "room") return "";
+  const pending =
+    room.access.mode === "existing" ||
+    Object.values(room.access.requests).some(
+      (r) =>
+        r.payload.expiresAt > Date.now() &&
+        !room.access.links[r.payload.requester] &&
+        room.access.canApprove(r),
+    );
+  return pending
+    ? '<div class="device-notice"><span>🔐 Есть запрос на подключение устройства</span><button data-action="nav" data-page="room">Открыть</button></div>'
+    : "";
+}
+function devicesModal() {
+  const access = room.access,
+    ids = [
+      ...new Set([
+        access.ownId,
+        ...Object.values(access.links)
+          .filter((l) => l.payload.memberId === access.ownId)
+          .map((l) => l.payload.deviceId),
+      ]),
+    ];
+  modal(
+    `<h2>Мои устройства</h2><p>Открой приглашение на телефоне или ПК, выбери «Мой существующий профиль» и подтверди одинаковый код.</p>${ids.map((id) => `<div class="record-row"><b>${id === ident.id ? "Это устройство" : id === access.ownId ? "Первое устройство" : "Подключённое устройство"}</b><span>${room.online.has(id) ? "На связи" : "Не в сети"}</span><small>${esc(id.slice(0, 12))}</small></div>`).join("")}<button class="primary" data-action="copy-link">Скопировать приглашение</button><label class="recovery-setting"><input type="checkbox" id="recovery-enabled" ${state.recoveryEnabled !== false ? "checked" : ""}> Разрешить восстановление через знакомых участников комнаты</label><p class="muted">Подтвердить сможет только участник, записанный в подписанном списке доверия до потери устройства. Сейчас в списке: ${state.recoveryMembers?.length || 0}. Если потеряны все устройства и нет такой копии у участников, понадобится резервная копия.</p>`,
+  );
+}
+function joinModal(code = "") {
+  modal(
+    `<h2>К своим</h2><form id="join-form"><label class="field"><span>10 эмодзи или ссылка-приглашение</span><textarea name="code" required rows="3" placeholder="Вставь приглашение">${esc(code)}</textarea></label><label class="field"><span>Кем войти?</span><select name="entryMode"><option value="new">Новый участник</option><option value="existing">Мой существующий профиль</option></select></label><button class="primary">Войти в комнату</button><p class="muted">Существующий профиль подключается только после подтверждения на своём устройстве или у знакомого участника.</p></form>`,
+  );
+}
 function roomPage() {
-  const records = Object.values(room?.records || {}).map((r) => r.payload),
+  const records = room?.access.members() || [],
     members = records.length ? records : [{ ...state, id: ident.id }];
-  return `<div class="page-heading"><div><h1>Брат за брата<span class="heading-dot">.</span></h1><p>Тренируйтесь вместе, даже если ваши залы далеко друг от друга.</p></div><button class="primary" data-action="invite">＋ Позвать брата</button></div><section class="room-banner"><div><span class="pill">${esc(status)}</span><h2>Братская комната</h2><p>Код комнаты — ваше приглашение. Можно заниматься и одному.</p><button class="emoji-code" data-action="copy-code" aria-label="Скопировать эмодзи-код">${esc(state.room)}</button></div><div class="room-gorilla">🦍<span>Качаемся. Общаемся.<br>Сверяем базу.</span></div></section><div class="room-actions"><button class="secondary" data-action="join">Войти по коду</button><button class="secondary" data-action="new-room">Новая комната</button><button class="text-button" data-action="room-history">Мои комнаты</button></div><section class="panel"><div class="section-line"><h2>Наш состав</h2><span>${members.length} ${members.length === 1 ? "участник" : "участников"}</span></div><div class="members">${members
+  return `${devicePanel()}<div class="page-heading"><div><h1>Брат за брата<span class="heading-dot">.</span></h1><p>Тренируйтесь вместе, даже если ваши залы далеко друг от друга.</p></div><button class="primary" data-action="invite">＋ Позвать брата</button></div><section class="room-banner"><div><span class="pill">${esc(status)}</span><h2>Братская комната</h2><p>Код комнаты — ваше приглашение. Можно заниматься и одному.</p><button class="emoji-code" data-action="copy-code" aria-label="Скопировать эмодзи-код">${esc(state.room)}</button></div><div class="room-gorilla">🦍<span>Качаемся. Общаемся.<br>Сверяем базу.</span></div></section><div class="room-actions"><button class="secondary" data-action="join">Войти по коду</button><button class="secondary" data-action="new-room">Новая комната</button><button class="text-button" data-action="room-history">Мои комнаты</button><button class="text-button" data-action="devices">Мои устройства</button></div><section class="panel"><div class="section-line"><h2>Наш состав</h2><span>${members.length} ${members.length === 1 ? "участник" : "участников"}</span></div><div class="members">${members
     .map((p) => {
       const c = p.cycles?.find((x) => x.id === p.activeCycle) || p.cycles?.[0],
         s = c ? summary(c) : { sessions: 0, sets: 0 };
-      return `<button class="member" data-action="member" data-id="${esc(p.id)}"><span class="avatar big">${esc(p.avatar)}</span><div><strong>${esc(p.name)} ${p.id === ident.id ? "<small>это ты</small>" : ""}</strong><span><i class="${room?.online.has(p.id) ? "online" : ""}"></i>${room?.online.has(p.id) ? "На связи" : "Сохранённая копия"} · ${s.sessions} тренировок</span><small>${s.sets} подходов${p.updatedAt ? " · " + new Date(p.updatedAt).toLocaleDateString("ru-RU") : ""}</small></div><span>↗</span></button>`;
+      return `<button class="member" data-action="member" data-id="${esc(p.id)}"><span class="avatar big">${esc(p.avatar)}</span><div><strong>${esc(p.name)} ${p.id === memberId(ident.id) ? "<small>это ты</small>" : ""}</strong><span><i class="${room?.access.online(p.id) ? "online" : ""}"></i>${room?.access.online(p.id) ? "На связи" : "Сохранённая копия"} · ${s.sessions} тренировок</span><small>${s.sets} подходов${p.updatedAt ? " · " + new Date(p.updatedAt).toLocaleDateString("ru-RU") : ""}</small></div><span>↗</span></button>`;
     })
     .join(
       "",
@@ -686,7 +758,7 @@ function cyclesModal(completed = false) {
 }
 function profileModal() {
   modal(
-    `<h2>Это ты, брат</h2><form id="profile-form"><label class="field"><span>Как тебя зовут?</span><input name="name" maxlength="32" required value="${esc(state.name)}"></label><label class="field"><span>Твой зверь</span><select name="avatar">${EMOJIS.map((e) => `<option ${state.avatar === e ? "selected" : ""}>${e}</option>`).join("")}</select></label><button class="primary">Сохранить профиль</button></form><hr><h3>Резервная копия</h3><p>История хранится на этом устройстве. Экспортируй её перед очисткой браузера или переносом на другой телефон.</p><div class="button-row"><button class="secondary" data-action="export">Скачать JSON</button><label class="secondary file-label">Восстановить<input type="file" id="import-file" accept="application/json" hidden></label></div><p class="muted">В копии — твои тренировки и коды комнат. Личный ключ подписи остаётся на устройстве. На другом устройстве импорт создаст дневник с его собственной подписью.</p>`,
+    `<h2>Это ты, брат</h2><form id="profile-form"><label class="field"><span>Как тебя зовут?</span><input name="name" maxlength="32" required value="${esc(state.name)}"></label><label class="field"><span>Твой зверь</span><select name="avatar">${EMOJIS.map((e) => `<option ${state.avatar === e ? "selected" : ""}>${e}</option>`).join("")}</select></label><button class="primary">Сохранить профиль</button></form><hr><h3>Устройства и обновления</h3><div class="button-row"><button class="secondary" data-action="devices">Мои устройства</button><button class="secondary" data-check-updates>Проверить обновления</button></div><p class="muted">Версия ${APP_VERSION}. При выходе новой версии появится кнопка «Обновиться».</p><h3>Резервная копия</h3><p>История хранится на этом устройстве. Экспортируй её перед очисткой браузера или переносом на другой телефон.</p><div class="button-row"><button class="secondary" data-action="export">Скачать JSON</button><label class="secondary file-label">Восстановить<input type="file" id="import-file" accept="application/json" hidden></label></div><p class="muted">В копии — твои тренировки и коды комнат. Личный ключ подписи остаётся на устройстве. На другом устройстве импорт создаст дневник с его собственной подписью.</p>`,
   );
 }
 function exerciseModal(row) {
@@ -768,7 +840,7 @@ function download(text, name, type = "application/json") {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-function changeRoom(code) {
+function changeRoom(code, mode = "new") {
   if (!own()) {
     viewId = ident.id;
     viewCycle = null;
@@ -786,10 +858,36 @@ function changeRoom(code) {
     code,
     ident,
     () => {
-      const ownRecord = room.records[ident.id]?.payload;
-      if (ownRecord?.rev > state.rev) {
-        state = { ...ownRecord };
-        localStorage.setItem("zhmi:state", JSON.stringify(state));
+      if (room.access.mode !== "existing") {
+        const payloads = Object.values(room.records)
+          .filter(
+            (r) => room.access.canonical(r.payload.id) === room.access.ownId,
+          )
+          .map((r) => r.payload);
+        const merged = mergeDiaries([...payloads, state]);
+        if (!sameRegisters(merged, state)) {
+          state = {
+            ...merged,
+            room: state.room,
+            rev: Math.max(Date.now(), state.rev + 1),
+          };
+          committedState = structuredClone(state);
+          localStorage.setItem("zhmi:state", JSON.stringify(state));
+          room.publish(structuredClone(state));
+        }
+        const contacts = room.access
+          .members()
+          .map((p) => p.id)
+          .filter((id) => id !== room.access.ownId);
+        if (
+          state.recoveryEnabled !== false &&
+          contacts.some((id) => !state.recoveryMembers?.includes(id))
+        ) {
+          state.recoveryMembers = [
+            ...new Set([...(state.recoveryMembers || []), ...contacts]),
+          ];
+          commit();
+        }
       }
       if (
         !document.activeElement?.matches("input,select,textarea") &&
@@ -803,6 +901,13 @@ function changeRoom(code) {
       if (el) el.textContent = s;
     },
   );
+  const savedMode = localStorage.getItem("zhmi:entry-mode:" + room.code);
+  if (
+    mode === "existing" ||
+    (savedMode === "existing" && !room.access.links[ident.id])
+  )
+    room.access.mode = "existing";
+  localStorage.setItem("zhmi:entry-mode:" + room.code, room.access.mode);
   room.onReaction = reaction;
   room.publish(structuredClone(state));
 }
@@ -941,11 +1046,69 @@ document.addEventListener("click", async (event) => {
   } else if (a === "invite") invite();
   else if (a === "copy-link") clipboard(invitation());
   else if (a === "copy-code") clipboard(state.room);
-  else if (a === "join")
-    modal(
-      '<h2>К своим</h2><form id="join-form"><label class="field"><span>10 эмодзи или ссылка-приглашение</span><textarea name="code" required rows="3" placeholder="Вставь приглашение"></textarea></label><button class="primary">Войти в комнату</button><p class="muted">Твои тренировки сохранятся. Участники новой комнаты увидят твой дневник после подключения.</p></form>',
-    );
-  else if (a === "new-room") {
+  else if (a === "join") joinModal();
+  else if (a === "devices") devicesModal();
+  else if (a === "request-device") {
+    try {
+      await room.access.request(
+        b.dataset.id,
+        /Mobi|Android/i.test(navigator.userAgent) ? "Телефон" : "Компьютер",
+      );
+      render();
+    } catch (e) {
+      toast(e.message);
+    }
+  } else if (a === "approve-device") {
+    try {
+      await room.access.approve(b.dataset.request);
+      toast("Устройство подтверждено. Заверши вход на нём.");
+      render();
+    } catch (e) {
+      toast(e.message);
+    }
+  } else if (a === "confirm-device") {
+    try {
+      const adopted = room.access.confirm();
+      if (!adopted || !validDiary(adopted))
+        throw Error("Дневник ещё не загружен");
+      localStorage.setItem("zhmi:before-device-link", JSON.stringify(state));
+      state = {
+        ...adopted,
+        room: state.room,
+        rev: Math.max(Date.now(), state.rev + 1),
+      };
+      delete state.id;
+      committedState = structuredClone(state);
+      viewId = ident.id;
+      viewCycle = null;
+      localStorage.setItem("zhmi:entry-mode:" + room.code, "new");
+      commit();
+      room.publish(structuredClone(state));
+      page = "train";
+      render();
+      toast("Телефон и ПК теперь используют один профиль");
+    } catch (e) {
+      toast(e.message);
+    }
+  } else if (a === "renew-device") {
+    try {
+      const req = room.access.ownRequest;
+      await room.access.request(req.payload.target, req.payload.label);
+      render();
+    } catch (e) {
+      toast(e.message);
+    }
+  } else if (a === "postpone-device") {
+    const { newCode } = await import("./rooms.js");
+    changeRoom(newCode());
+    page = "room";
+    render();
+  } else if (a === "cancel-device") {
+    room.access.cancel();
+    localStorage.setItem("zhmi:entry-mode:" + room.code, "new");
+    room.publish(structuredClone(state));
+    render();
+  } else if (a === "new-room") {
     modal(
       '<h2>Начать свою комнату</h2><p>Твой дневник сохранится. Результаты старой комнаты останутся в её локальной копии.</p><button class="primary" data-action="confirm-new-room">Создать комнату</button>',
     );
@@ -1052,7 +1215,12 @@ document.addEventListener("change", (event) => {
   } else if (t.dataset.round && own()) {
     cycle().overrides[MAIN + "!E" + t.dataset.round] = Number(t.value);
     commit();
-    toast("Шаг сохранён");
+    if (!dialog.open) render();
+    toast("Шаг сохранён, веса пересчитаны");
+  } else if (t.id === "recovery-enabled" && own()) {
+    state.recoveryEnabled = t.checked;
+    commit();
+    toast("Настройка восстановления сохранена");
   } else if (t.id === "import-file") importBackup(t.files[0]);
   else if (t.id === "warmup-mode") {
     const defaults = [95, 140, 160, 150, 220, 310];
@@ -1089,7 +1257,7 @@ document.addEventListener("submit", (event) => {
   } else if (f.id === "join-form") {
     try {
       const code = parseRoom(f.elements.code.value);
-      changeRoom(code);
+      changeRoom(code, f.elements.entryMode?.value || "new");
       page = "room";
       dialog.close();
       render();
@@ -1155,13 +1323,52 @@ render();
 if (inviteCode) {
   try {
     const code = parseRoom(inviteCode);
-    if (code !== state.room)
-      modal(
-        `<h2>Тебя позвали в качалку</h2><div class="emoji-code">${esc(code)}</div><p>После входа участники увидят твой дневник. Для синхронизации откройте комнату одновременно.</p><button class="primary" data-action="switch-room" data-code="${esc(code)}">Войти в комнату</button>`,
-      );
+    if (code !== state.room) joinModal(code);
   } catch {
     toast("В приглашении неверный код");
   }
 }
-if ("serviceWorker" in navigator)
-  navigator.serviceWorker.register("./sw.js").catch(() => {});
+initUpdates({
+  save: async () => {
+    commit();
+    await room?.publish(structuredClone(state));
+  },
+  toast,
+});
+export function connectionDiagnostics() {
+  return {
+    peer: {
+      wire: room.lastWireBytes,
+      maxMessage: room.lastMaxMessageSize,
+      error: room.lastConnectionError,
+      stopped: room.stopped,
+      lastTick: room.lastTick,
+      online: navigator.onLine,
+      open: room.peer?.open,
+      hub: room.isHub,
+      id: room.peer?.id,
+      connections: [...room.connections.values()].map((c) => ({
+        open: c.open,
+        peer: c.peer,
+        lastSeen: c.lastSeen,
+      })),
+    },
+    device: ident.id,
+    member: room.access.ownId,
+    mode: room.access.mode,
+    status,
+    links: Object.keys(room.access.links),
+    requests: Object.values(room.access.requests).map((r) => ({
+      request: r.payload,
+      canApprove: room.access.canApprove(r),
+    })),
+    members: room.access
+      .members()
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        recoveryEnabled: p.recoveryEnabled,
+        recoveryMembers: p.recoveryMembers,
+      })),
+  };
+}
