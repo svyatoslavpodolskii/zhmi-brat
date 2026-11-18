@@ -1,0 +1,520 @@
+.calendar-mascots {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 30px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.calendar-sheet {
+  background: #fff;
+  border: 1px solid #e0e7ec;
+  border-radius: 18px;
+  padding: 22px;
+  overflow: hidden;
+}
+.calendar-month {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 17px;
+}
+.calendar-month > button:not(.text-button) {
+  width: 40px;
+  height: 40px;
+  background: #edf2fc;
+  color: #315bdb;
+  font-size: 27px;
+  line-height: 1;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.calendar-month h2 {
+  flex: 1;
+  min-width: 0;
+  font-size: 20px;
+  text-transform: capitalize;
+}
+.calendar-month > .text-button {
+  margin-left: 5px;
+  min-height: 40px;
+  padding: 8px;
+  font-size: 11px;
+}
+.calendar-team {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 19px;
+}
+.calendar-team > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  padding: 6px 9px;
+  background: #f0f4f7;
+  border-radius: 9px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.calendar-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-family:
+    "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+  font-size: 19px;
+}
+.calendar-team small {
+  font-size: 9px;
+  color: #72859a;
+}
+.calendar-modes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+.calendar-modes button {
+  border: 1px solid #e1e7ed;
+  border-radius: 10px;
+  padding: 9px 5px;
+  min-height: 43px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  min-width: 0;
+}
+.calendar-modes button span {
+  font-size: 16px;
+  line-height: 1;
+}
+.calendar-modes button.active {
+  border-color: #abc0ff;
+  color: #315bdb;
+  background: #edf2ff;
+}
+.calendar-hint {
+  font-size: 11px;
+  color: #8696a3;
+  margin: 11px 0 18px;
+}
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 7px;
+}
+.calendar-weekdays {
+  text-align: center;
+  font-size: 11px;
+  color: #8195a3;
+  margin-bottom: 10px;
+  font-weight: 750;
+}
+.calendar-day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+  min-height: 96px;
+  background: #f5f7f9;
+  border: 1px solid #edf1f4;
+  border-radius: 12px;
+  padding: 10px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: pan-y;
+  text-align: left;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.calendar-day-top {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  line-height: 1;
+  font-size: 14px;
+  font-weight: 850;
+}
+.calendar-day-top > span:first-child {
+  margin-right: auto;
+}
+.work-mark {
+  font-size: 11px;
+  line-height: 1;
+}
+.team-check {
+  display: grid;
+  place-items: center;
+  background: #438f70;
+  color: white;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  font-size: 11px;
+}
+.calendar-day.work-day {
+  background: repeating-linear-gradient(
+    135deg,
+    #fbf4e8 0px,
+    #fbf4e8 7px,
+    #f7eddc 7px,
+    #f7eddc 8px
+  );
+  border-color: #e7d7b8;
+}
+.calendar-day.has-training {
+  background: #edf2ff;
+  border-color: #abc0f8;
+}
+.calendar-day.done {
+  background: #e3f4eb;
+  border-color: #add8c3;
+}
+.calendar-day.whole-team {
+  background: #b9e5d1;
+  border-color: #6bb694;
+}
+.calendar-day.selected {
+  box-shadow: inset 0 0 0 2px #315bdb;
+}
+.calendar-day.is-today .calendar-day-top > span:first-child {
+  color: #315bdb;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.calendar-day-emojis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  min-height: 19px;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: 18px;
+  line-height: 1.1;
+  font-family:
+    "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+}
+.calendar-day-emojis > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.calendar-day-emojis small {
+  font:
+    700 9px Nunito,
+    sans-serif;
+}
+.calendar-day-status {
+  font-size: 16px;
+  color: #315bdb;
+  line-height: 1;
+  min-height: 10px;
+}
+.calendar-day.done .calendar-day-status {
+  color: #3f8b6c;
+}
+.calendar-legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 17px;
+  font-size: 10px;
+  color: #7e8e9b;
+}
+.calendar-legend > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.calendar-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  margin: 0;
+  box-shadow: none;
+}
+.calendar-legend .legend-plan {
+  background: #cad8ff;
+}
+.calendar-legend .legend-done {
+  background: #a8d7bf;
+}
+.calendar-legend .legend-work {
+  background: #e6d2ac;
+}
+.calendar-legend .legend-team {
+  background: #5daf8a;
+}
+.calendar-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 20px 4px;
+  margin: 0 0 3px;
+}
+.calendar-summary > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.calendar-summary strong {
+  font-size: 26px;
+  font-weight: 950;
+  letter-spacing: -0.8px;
+}
+.calendar-summary span {
+  color: #81939f;
+  font-size: 10px;
+}
+.schedule-strip {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 18px;
+  background: #e6e2f6;
+  border: 1px solid #d6ceef;
+  border-radius: 14px;
+  margin-bottom: 22px;
+}
+.schedule-strip > span {
+  font-size: 25px;
+  line-height: 1;
+}
+.schedule-strip > div {
+  flex: 1;
+  min-width: 0;
+}
+.schedule-strip h3 {
+  font-size: 14px;
+}
+.schedule-strip p {
+  font-size: 11px;
+  line-height: 1.5;
+  color: #8a7ba5;
+  margin-top: 4px;
+}
+.schedule-strip .secondary {
+  font-size: 11px;
+  padding: 10px 14px;
+  min-height: 40px;
+}
+.calendar-details .section-line {
+  align-items: start;
+}
+.calendar-details h2 {
+  font-size: 17px;
+  text-transform: capitalize;
+}
+.calendar-details .section-line > span {
+  font-size: 10px;
+  white-space: nowrap;
+  padding-top: 3px;
+}
+.calendar-details .button-row {
+  margin-top: 17px;
+}
+.calendar-details .primary,
+.calendar-details .secondary {
+  font-size: 12px;
+}
+.day-person {
+  display: inline-block;
+  margin: 0 8px 5px 0;
+  color: #506e84;
+}
+.calendar-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 8px 2px 22px;
+}
+.calendar-footer > span {
+  font-size: 11px;
+  color: #97a5af;
+}
+.schedule-counts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+.schedule-counts[hidden],
+[hidden] {
+  display: none !important;
+}
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1020px) {
+  .calendar-sheet {
+    padding: 16px 10px;
+    border-radius: 15px;
+  }
+  .calendar-mascots {
+    font-size: 25px;
+  }
+  .calendar-month {
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .calendar-month h2 {
+    font-size: 17px;
+  }
+  .calendar-month > button:not(.text-button) {
+    width: 34px;
+    height: 40px;
+  }
+  .calendar-month > .text-button {
+    font-size: 10px;
+    padding: 6px 2px;
+    margin: 0;
+  }
+  .calendar-team {
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .calendar-team > span {
+    font-size: 10px;
+    padding: 6px 7px;
+  }
+  .calendar-modes {
+    gap: 5px;
+  }
+  .calendar-modes button {
+    font-size: 10px;
+    gap: 4px;
+    min-height: 43px;
+    padding: 8px 3px;
+  }
+  .calendar-modes button span {
+    font-size: 14px;
+  }
+  .calendar-hint {
+    font-size: 9px;
+    margin: 10px 0 15px;
+    line-height: 1.5;
+  }
+  .calendar-grid,
+  .calendar-weekdays {
+    gap: 4px;
+  }
+  .calendar-day {
+    min-height: 79px;
+    padding: 7px 5px;
+    gap: 7px;
+    border-radius: 8px;
+  }
+  .calendar-day-top {
+    font-size: 12px;
+    gap: 1px;
+  }
+  .work-mark {
+    font-size: 9px;
+  }
+  .team-check {
+    width: 12px;
+    height: 12px;
+    font-size: 9px;
+  }
+  .calendar-day-emojis {
+    font-size: 14px;
+    gap: 1px;
+    min-height: 16px;
+  }
+  .calendar-day-status {
+    font-size: 13px;
+    min-height: 9px;
+  }
+  .calendar-legend {
+    gap: 9px;
+    font-size: 9px;
+    margin-top: 14px;
+  }
+  .calendar-summary {
+    padding: 16px 3px;
+    gap: 6px;
+  }
+  .calendar-summary > div {
+    flex-direction: column;
+    gap: 3px;
+  }
+  .calendar-summary strong {
+    font-size: 26px;
+  }
+  .calendar-summary span {
+    font-size: 9px;
+  }
+  .schedule-strip {
+    padding: 15px 12px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .schedule-strip > div {
+    flex: 1;
+    min-width: 150px;
+  }
+  .schedule-strip .secondary {
+    margin-left: auto;
+    font-size: 11px;
+  }
+  .schedule-strip h3 {
+    font-size: 13px;
+  }
+  .schedule-strip p {
+    font-size: 10px;
+  }
+  .calendar-details {
+    padding: 18px 14px;
+  }
+  .calendar-details .section-line {
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+  .calendar-details h2 {
+    font-size: 17px;
+  }
+  .calendar-details .primary,
+  .calendar-details .secondary {
+    font-size: 11px;
+    padding: 11px 12px;
+  }
+  .calendar-footer > span {
+    display: none;
+  }
+  .calendar-footer .text-button {
+    font-size: 11px;
+  }
+}
+@media (max-width: 350px) {
+  .calendar-day {
+    padding: 7px 3px;
+    min-height: 76px;
+  }
+  .calendar-day-emojis {
+    font-size: 12px;
+  }
+  .calendar-day-top {
+    font-size: 11px;
+  }
+  .calendar-sheet {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .calendar-month h2 {
+    font-size: 15px;
+  }
+  .calendar-team > span {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}

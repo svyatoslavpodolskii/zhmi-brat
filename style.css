@@ -1753,7 +1753,7 @@ dialog .secondary {
     display: block;
   }
 }
-@media (max-width: 760px) {
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1020px) {
   .sidebar {
     display: none;
   }
@@ -2320,7 +2320,7 @@ dialog .secondary {
   color: var(--muted);
   font-size: 10px;
 }
-@media (max-width: 760px) {
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1020px) {
   .viewing {
     align-items: start;
     flex-direction: column;
@@ -2389,7 +2389,7 @@ dialog .secondary {
     font-size: 10px;
   }
 }
-@media (max-width: 760px) {
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1020px) {
   .field input,
   .field select {
     font-size: 16px;
@@ -2567,7 +2567,7 @@ dialog .secondary {
   border-radius: 10px;
   white-space: nowrap;
 }
-@media (max-width: 760px) {
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1020px) {
   .update-notice {
     bottom: 83px;
     left: 12px;
@@ -2621,7 +2621,7 @@ dialog .secondary {
   border: 1px solid #cbd9e5;
   border-radius: 9px;
 }
-@media (max-width: 760px) {
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1020px) {
   .rounding-control {
     font-size: 10px;
     gap: 7px;

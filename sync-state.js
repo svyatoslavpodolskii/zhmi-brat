@@ -9,6 +9,13 @@ function flatten(state) {
     if (state[k] !== undefined) put([k], state[k]);
   for (const id of state.recoveryMembers || [])
     put(["recoveryMembers", id], true);
+  if (state.calendar) {
+    if (state.calendar.schedule !== undefined)
+      put(["calendar", "schedule"], state.calendar.schedule);
+    for (const key of ["training", "workOverrides"])
+      for (const [date, value] of Object.entries(state.calendar[key] || {}))
+        put(["calendar", key, date], value);
+  }
   for (const c of state.cycles || []) {
     for (const k of ["id", "name", "createdAt", "position"])
       put(["cycles", c.id, k], c[k]);
@@ -54,6 +61,7 @@ export function mergeDiaries(states) {
     ),
     rev: Math.max(0, ...states.map((s) => s.rev || 0)),
     recoveryMembers: [],
+    calendar: { schedule: null, training: {}, workOverrides: {} },
   };
   const cycles = Object.create(null);
   for (const [k, r] of Object.entries(result.registers)) {
@@ -64,7 +72,16 @@ export function mergeDiaries(states) {
     } catch {
       continue;
     }
-    if (p[0] === "cycles") {
+    if (p[0] === "calendar") {
+      if (p.length === 2 && p[1] === "schedule")
+        result.calendar.schedule = copy(r.v);
+      else if (
+        p.length === 3 &&
+        ["training", "workOverrides"].includes(p[1]) &&
+        /^\d{4}-\d{2}-\d{2}$/.test(p[2])
+      )
+        result.calendar[p[1]][p[2]] = copy(r.v);
+    } else if (p[0] === "cycles") {
       if (!/^[a-zA-Z0-9-]{1,100}$/.test(p[1])) continue;
       const c = (cycles[p[1]] ??= {
         id: p[1],

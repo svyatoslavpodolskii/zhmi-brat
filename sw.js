@@ -1,4 +1,4 @@
-const CACHE = "zhmi-brat-v1.1.0";
+const CACHE = "zhmi-brat-v1.2.0";
 const ASSETS = [
   "./",
   "./index.html",
@@ -7,6 +7,12 @@ const ASSETS = [
   "./state.js",
   "./engine.js",
   "./rooms.js",
+  "./calendar.js",
+  "./calendar-view.js",
+  "./buddy.js",
+  "./calendar.css",
+  "./buddy.css",
+  "./refinements.css",
   "./devices.js",
   "./sync-state.js",
   "./updates.js",
