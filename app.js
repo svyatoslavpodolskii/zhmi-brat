@@ -233,7 +233,7 @@ function exercise(slot, p, i) {
   const name = selected(slot),
     e = engine(),
     isPlus = name === "+";
-  const config = `<label class="exercise-select"><span class="sr-only">Упражнение ${slot.row}</span><select data-exercise="${slot.row}" aria-label="Упражнение ${slot.row}" ${own() ? "" : "disabled"}>${slot.options.map((o) => `<option value="${esc(o.name)}" ${name === o.name ? "selected" : ""}>${o.name === "+" ? "＋ Добавить упражнение" : esc(o.name.trim())}</option>`).join("")}</select></label>`;
+  const config = `<label class="exercise-select"><span class="exercise-name" aria-hidden="true">${name === "+" ? "＋ Добавить упражнение" : esc(name.trim())}</span><select data-exercise="${slot.row}" aria-label="Упражнение ${slot.row}" ${own() ? "" : "disabled"}>${slot.options.map((o) => `<option value="${esc(o.name)}" ${name === o.name ? "selected" : ""}>${o.name === "+" ? "＋ Добавить упражнение" : esc(o.name.trim())}</option>`).join("")}</select></label>`;
   if (isPlus)
     return `<article class="exercise optional"><span class="exercise-number">＋</span>${config}<span>Необязательное упражнение</span></article>`;
   const c = cycle(),
@@ -327,14 +327,12 @@ function progress() {
     s = summary(c),
     logs = Object.values(c.logs || {}).sort((a, b) => a.at - b.at);
   const dates = [...new Set(logs.map((l) => l.date))].sort();
-  const bars = dates
-    .slice(-12)
-    .map((d) => ({
-      label: d.slice(5),
-      value: logs
-        .filter((l) => l.date === d)
-        .reduce((n, l) => n + (l.weight || 0) * l.reps, 0),
-    }));
+  const bars = dates.slice(-12).map((d) => ({
+    label: d.slice(5),
+    value: logs
+      .filter((l) => l.date === d)
+      .reduce((n, l) => n + (l.weight || 0) * l.reps, 0),
+  }));
   return `<div class="page-heading"><div><h1>База растёт<span class="heading-dot">.</span></h1><p>Только твои записанные подходы. Каждый цикл хранится отдельно.</p></div><button class="secondary" data-action="cycles">Архив циклов</button></div><div class="stats-strip">${[
     ["Тренировок", s.sessions],
     ["Подходов", s.sets],
