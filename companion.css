@@ -1,0 +1,456 @@
+.buddy {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  padding: 20px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  margin-top: 30px;
+  color: var(--navy);
+}
+.buddy-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 850;
+  color: var(--navy);
+  position: relative;
+  z-index: 3;
+  pointer-events: none;
+}
+.buddy-heading > span {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 650;
+}
+.buddy .buddy-stage {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 278px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  overflow: visible;
+  border-radius: 18px;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-touch-callout: none;
+  margin-top: -40px;
+  order: -1;
+}
+.buddy .buddy-art {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  background: none;
+  pointer-events: none;
+}
+.buddy .buddy-art:before {
+  display: none;
+}
+.buddy .buddy-pose {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 160px;
+  height: 296px;
+  transform: translateX(-50%);
+  transform-origin: 50% 62%;
+  transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+  z-index: 2;
+}
+.buddy .buddy-motion {
+  height: 100%;
+  width: 100%;
+  animation: companion-sway 5s ease-in-out infinite;
+  transform-origin: 50% 80%;
+}
+.buddy .buddy-art img {
+  display: block;
+  position: static;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  max-width: none;
+  top: auto;
+  left: auto;
+  transform: none;
+  mix-blend-mode: normal;
+  opacity: 1;
+  animation: companion-breathe 3.8s ease-in-out infinite;
+  transform-origin: 50% 70%;
+  filter: drop-shadow(0 9px 10px #10213216);
+}
+.buddy .buddy-sofa {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 20px;
+  height: 62px;
+  border-radius: 22px 22px 16px 16px;
+  background: var(--sofa);
+  border-bottom: 12px solid var(--sofa-edge);
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.4s,
+    transform 0.4s;
+  z-index: 1;
+}
+.buddy .buddy-sofa:before,
+.buddy .buddy-sofa:after {
+  content: "";
+  position: absolute;
+  top: -14px;
+  width: 19px;
+  height: 55px;
+  background: var(--sofa-arm);
+  border-radius: 12px;
+}
+.buddy .buddy-sofa:before {
+  left: -5px;
+}
+.buddy .buddy-sofa:after {
+  right: -5px;
+}
+.buddy.is-chilling .buddy-sofa {
+  opacity: 1;
+  transform: none;
+}
+.buddy.is-chilling .buddy-pose {
+  transform: translate(-50%, 18px) rotate(-78deg) scale(0.83);
+}
+.buddy.is-chilling .buddy-motion {
+  animation: companion-rest 5s ease-in-out infinite;
+  transform-origin: center;
+}
+.buddy .buddy-zzz {
+  display: none;
+  position: absolute;
+  right: 12px;
+  top: 75px;
+  color: var(--muted);
+  font-weight: 900;
+  letter-spacing: 5px;
+  animation: companion-z 3s ease-in-out infinite;
+  z-index: 3;
+}
+.buddy.is-chilling .buddy-zzz {
+  display: block;
+}
+.buddy .buddy-speech {
+  position: relative;
+  background: none;
+  padding: 12px 0 0;
+  border-radius: 0;
+  min-height: 68px;
+}
+.buddy .buddy-speech:before {
+  display: none;
+}
+.buddy-speech b {
+  display: block;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.buddy .buddy-speech p {
+  font-size: 11px;
+  line-height: 1.6;
+  margin-top: 6px;
+  color: var(--muted);
+}
+.buddy-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+.buddy-actions button {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  height: 44px;
+  min-width: 0;
+  padding: 0;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 22px;
+  line-height: 1;
+  transition: transform 0.15s;
+}
+.buddy-actions button:active {
+  transform: scale(0.9);
+}
+.buddy-actions [aria-pressed="true"] {
+  background: var(--selected);
+  border-color: var(--blue);
+}
+.buddy-hint {
+  display: block;
+  font-size: 9px;
+  line-height: 1.5;
+  color: var(--muted);
+  margin-top: 10px;
+}
+.buddy[data-style="1"][data-move="idle"]:not(.is-chilling) .buddy-motion {
+  animation-name: companion-shift;
+}
+.buddy[data-style="2"][data-move="idle"]:not(.is-chilling) .buddy-motion {
+  animation-name: companion-proud;
+}
+.buddy[data-mode="ready"] .buddy-motion {
+  animation-duration: 2.8s;
+}
+.buddy[data-move="five"] .buddy-motion {
+  animation: companion-five 1.2s ease-in-out;
+}
+.buddy[data-move="flex"] .buddy-motion {
+  animation: companion-flex 1.2s ease-in-out;
+}
+.buddy[data-move="banana"] .buddy-motion {
+  animation: companion-snack 1.2s ease-in-out;
+}
+.buddy[data-move="bend"] .buddy-motion {
+  animation: companion-bend 1.2s ease-in-out;
+}
+.buddy[data-variant="1"] {
+  --gesture: 1;
+  --angle: 7deg;
+  --hop: -14px;
+  --gesture-scale: 1.06;
+}
+.buddy[data-variant="2"] {
+  --gesture: -1;
+  --angle: -6deg;
+  --hop: -7px;
+  --gesture-scale: 1.1;
+}
+.buddy[data-variant="0"] {
+  --gesture: 1;
+  --angle: 4deg;
+  --hop: -19px;
+  --gesture-scale: 1.03;
+}
+.buddy.is-chilling[data-move]:not([data-move="idle"]) .buddy-motion {
+  animation: companion-lying-reaction 1.2s ease-in-out;
+}
+.buddy.is-chilling[data-move="banana"] .buddy-motion {
+  animation: companion-snack 1.2s ease-in-out;
+}
+@keyframes companion-sway {
+  0%,
+  100% {
+    transform: rotate(-1deg);
+  }
+  50% {
+    transform: rotate(1deg) translateY(-3px);
+  }
+}
+@keyframes companion-shift {
+  0%,
+  100% {
+    transform: translateX(-3px) rotate(-1deg);
+  }
+  50% {
+    transform: translateX(3px) rotate(1.5deg);
+  }
+}
+@keyframes companion-proud {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.025) translateY(-3px);
+  }
+}
+@keyframes companion-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.016, 1.008);
+  }
+}
+@keyframes companion-rest {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-0.4deg);
+  }
+  50% {
+    transform: translateY(-2px) rotate(0.4deg);
+  }
+}
+@keyframes companion-z {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: translateY(6px);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateY(-7px);
+  }
+}
+@keyframes companion-five {
+  0%,
+  100% {
+    transform: none;
+  }
+  35% {
+    transform: translateY(var(--hop, -14px))
+      rotate(calc(-1 * var(--angle, 5deg)));
+  }
+  65% {
+    transform: rotate(var(--angle, 4deg));
+  }
+}
+@keyframes companion-flex {
+  0%,
+  100% {
+    transform: none;
+  }
+  40% {
+    transform: scale(var(--gesture-scale, 1.06), 1.02)
+      rotate(calc(-4deg * var(--gesture, 1)));
+  }
+  70% {
+    transform: scale(1.03) rotate(calc(3deg * var(--gesture, 1)));
+  }
+}
+@keyframes companion-snack {
+  0%,
+  100% {
+    transform: none;
+  }
+  30%,
+  65% {
+    transform: rotate(calc(0.5 * var(--angle, 6deg)))
+      scale(var(--gesture-scale, 1.02));
+  }
+  45% {
+    transform: rotate(-2deg);
+  }
+}
+@keyframes companion-bend {
+  0%,
+  100% {
+    transform: none;
+  }
+  30% {
+    transform: rotate(calc(-1.4 * var(--angle, 6deg))) skewX(-3deg);
+  }
+  65% {
+    transform: rotate(var(--angle, 7deg)) skewX(2deg);
+  }
+}
+@keyframes companion-lying-reaction {
+  0%,
+  100% {
+    transform: none;
+  }
+  40% {
+    transform: translateY(-4px) rotate(calc(3deg * var(--gesture, 1)))
+      scale(1.025);
+  }
+  70% {
+    transform: translateY(-1px) rotate(-1deg);
+  }
+}
+.timer-scene {
+  display: none;
+}
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1020px) {
+  .mobile-buddy .buddy {
+    display: block;
+    padding: 20px;
+    margin-top: 40px;
+  }
+  .mobile-buddy .buddy-heading {
+    display: flex;
+  }
+  .mobile-buddy .buddy-stage {
+    height: 250px;
+    width: 100%;
+    grid-area: auto;
+  }
+  .mobile-buddy .buddy .buddy-pose {
+    height: 280px;
+    width: 152px;
+  }
+  .mobile-buddy .buddy .buddy-art {
+    height: auto;
+  }
+  .mobile-buddy .buddy .buddy-art img {
+    height: 100%;
+    width: 100%;
+  }
+  .mobile-buddy .buddy-speech {
+    padding: 12px 0 0;
+  }
+  .mobile-buddy .buddy-speech b {
+    font-size: 16px;
+  }
+  .mobile-buddy .buddy-actions {
+    gap: 10px;
+  }
+  .mobile-buddy .buddy-actions button {
+    width: auto;
+    height: 44px;
+  }
+  .timer-scene {
+    display: block;
+  }
+  .timer-scene .buddy {
+    margin: 24px 0 0;
+    border: 0;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+  }
+  .timer-scene .buddy-heading,
+  .timer-scene .buddy-hint {
+    display: none;
+  }
+  .timer-scene .buddy .buddy-stage {
+    height: 215px;
+  }
+  .timer-scene .buddy .buddy-pose {
+    height: 290px;
+    width: 157px;
+    bottom: -5px;
+  }
+  .timer-scene .buddy.is-chilling .buddy-pose {
+    transform: translate(-50%, 19px) rotate(-78deg) scale(0.89);
+  }
+  .timer-scene .buddy-speech {
+    padding-top: 4px;
+    min-height: 58px;
+    text-align: center;
+  }
+  .timer-scene .buddy-speech b {
+    font-size: 15px;
+  }
+  .timer-scene .buddy-speech p {
+    display: none;
+  }
+  .timer-scene .buddy-actions {
+    margin-top: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .buddy * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.buddy[data-move="chill"]:not(.is-chilling) .buddy-motion {
+  animation: companion-flex 1.2s ease-in-out;
+}

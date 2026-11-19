@@ -1,3 +1,4 @@
+import { PresenceUI } from "./presence.js";
 import { WorkbookEngine, colName } from "./engine.js";
 import { Room, identity, EMOJIS, validDiary } from "./rooms.js";
 import { stampChanges, mergeDiaries, sameRegisters } from "./sync-state.js";
@@ -9,7 +10,8 @@ import {
   installBuddy,
   refreshBuddyMood,
   celebrateBuddy,
-} from "./buddy.js";
+  notifyBuddyTimer,
+} from "./companion.js";
 import {
   MAIN,
   dayRows,
@@ -58,6 +60,12 @@ const fmt = (v) =>
     : (v ?? "—");
 const own = () => memberId(viewId) === memberId(ident.id);
 const remotePositions = {};
+const presence = new PresenceUI(
+  () => room,
+  () => status,
+  modal,
+);
+let pendingInvite = null;
 function person() {
   return own() ? state : room?.access.member(viewId) || state;
 }
@@ -199,6 +207,10 @@ function toast(text) {
 function modal(html) {
   dialog.innerHTML = `<button class="close" aria-label="Закрыть" data-action="close">×</button>${html}`;
   dialog.showModal();
+  if (dialog.querySelector(".timer-expanded")) {
+    notifyBuddyTimer();
+    updateTimer();
+  }
 }
 function field(label, attrs, value = "", placeholder = "") {
   return `<label class="field"><span>${label}</span><input ${attrs} value="${esc(value)}" placeholder="${esc(placeholder)}" ${own() ? "" : "disabled"}></label>`;
@@ -241,7 +253,7 @@ function appShell() {
     .join(
       "",
     )}</nav><div class="sidebar-bottom"><button data-action="cycles" class="cycle-link">↻ ${esc(c.name)}<span>Все циклы и архив</span></button><button data-action="profile" class="profile"><span class="avatar small">${esc(state.avatar)}</span><span>${esc(state.name)}<small>Твой личный дневник</small></span><span>⚙</span></button></div></aside>
- <div class="workspace"><header class="topbar"><button class="mobile-brand brand" data-action="nav" data-page="train" aria-label="ЖМИ, БРАТ — главная"><span class="brand-icon">жб</span><strong>ЖМИ,<br>БРАТ<span class="brand-dot">.</span></strong></button><div class="breadcrumb">Твоя качалка <span>/</span> ${labels[page]}</div><button data-action="nav" data-page="room" class="connection"><i class="${room?.connections.size ? "online" : ""}"></i><span id="connection-text">${esc(status)}</span></button><button class="theme-toggle" data-action="theme" aria-label="${document.documentElement.dataset.theme === "dark" ? "Включить светлую тему" : "Включить тёмную тему"}" aria-pressed="${document.documentElement.dataset.theme === "dark"}">${document.documentElement.dataset.theme === "dark" ? "☀️" : "🌙"}</button><button class="avatar small" data-action="profile" aria-label="Профиль">${esc(state.avatar)}</button></header>
+ <div class="workspace"><header class="topbar"><button class="mobile-brand brand" data-action="nav" data-page="train" aria-label="ЖМИ, БРАТ — главная"><span class="brand-icon">жб</span><strong>ЖМИ,<br>БРАТ<span class="brand-dot">.</span></strong></button><div class="breadcrumb">Твоя качалка <span>/</span> ${labels[page]}</div>${presence.html()}<button class="theme-toggle" data-action="theme" aria-label="${document.documentElement.dataset.theme === "dark" ? "Включить светлую тему" : "Включить тёмную тему"}" aria-pressed="${document.documentElement.dataset.theme === "dark"}">${document.documentElement.dataset.theme === "dark" ? "☀️" : "🌙"}</button><button class="avatar small" data-action="profile" aria-label="Профиль">${esc(state.avatar)}</button></header>
  <div class="content"><main id="main" tabindex="-1">${!own() ? `<div class="viewing">${esc(person().avatar)} Дневник ${esc(person().name)} · только просмотр <div class="viewing-actions"><button data-action="copy-exercises-open">Взять упражнения</button><button data-action="own">К моему</button></div></div>` : ""}${deviceNotice()}${page === "train" ? training(p) : page === "calendar" ? calendarView.html() : page === "progress" ? progress() : page === "room" ? roomPage() : page === "tech" ? techPage() : page === "calc" ? calculator() : helpPage()}</main><aside class="rightbar">${buddy()}${timerCard()}${roomMini()}</aside></div>
  <footer class="app-footer"><button data-action="nav" data-page="help">Справка и источники</button></footer></div>
  <nav class="bottom-nav" aria-label="Мобильная навигация">${["train", "calendar", "progress", "room", "tech", "calc"].map((k) => `<button data-action="nav" data-page="${k}" class="${page === k ? "active" : ""}"><span>${icons[k]}</span>${labels[k]}</button>`).join("")}</nav><button class="floating-timer" data-action="timer-open" aria-label="Таймер отдыха">◷ <span id="mobile-time">Отдых</span></button>`;
@@ -269,7 +281,7 @@ function training(p) {
    .join("")}</div>
  ${
    p.phase === "rest"
-     ? `<section class="rest-page"><span>🛋️</span><h2>Брат, восстановись.</h2><p>Недельный перерыв после первого мезоцикла — рекомендация оригинала. Следующий этап начинается с недели 4.</p><button class="primary" data-action="rest-done">Перейти к мезоциклу 2</button></section>`
+     ? `<section class="rest-page"><h2>Брат, восстановись.</h2><p>Недельный перерыв после первого мезоцикла — рекомендация оригинала. Следующий этап начинается с недели 4.</p><button class="primary" data-action="rest-done">Перейти к мезоциклу 2</button></section><div class="mobile-buddy">${buddy()}</div>`
      : `<div class="session-toolbar"><div class="week-pick"><label for="week">Неделя</label><select id="week" data-action="week" ${p.phase === "test" ? "disabled" : ""}>${Array.from({ length: p.phase === "prep" ? 2 : p.phase === "test" ? 1 : 9 }, (_, i) => `<option value="${i}" ${p.week === i ? "selected" : ""}>${p.phase === "meso" ? `М${Math.floor(i / 3) + 1} / ` : ""}${i + 1}</option>`).join("")}</select></div><div class="day-tabs" aria-label="День тренировки">${[0, 1, 2].map((i) => `<button data-action="day" data-day="${i}" class="${p.day === i ? "active" : ""}">День ${i + 1}${done.includes(setKey({ ...p, day: i })) ? " ✓" : ""}</button>`).join("")}</div><label class="session-date"><span>Дата</span><input type="date" value="${esc(c.dates?.[key] || today())}" data-date ${own() ? "" : "disabled"}></label></div>
  <div class="session-title"><h2>День ${p.day + 1} <span>${slots.filter((s) => selected(s) !== "+").length} упражнений</span></h2><button class="text-button" data-action="rpe-help">Что такое RPE?</button></div>
  ${p.phase === "test" ? '<div class="note blue">Взвешенные подтягивания и брусья: вводи вес тела + отягощение. Для упражнений с собственным весом важны повторения; шаг в настройках — прибавка повторений.</div>' : ""}
@@ -353,8 +365,8 @@ function buddy() {
 }
 let deadline = Number(localStorage.getItem("zhmi:timer") || 0),
   paused = 0;
-function timerCard() {
-  return `<section class="timer-card"><div><h3>Между подходами</h3><span>Отдых — часть программы</span></div>${buddyHTML({ timer: true, rest: !!(deadline || paused) })}<div class="timer-digits" id="timer-time">03:00</div><div class="timer-options">${[3, 5, 8, 10].map((n) => `<button data-action="timer" data-min="${n}">${n} мин</button>`).join("")}</div><button class="timer-control" data-action="timer-toggle">${deadline ? "Пауза" : "Запустить 3 минуты"}</button><button class="text-button" data-action="timer-stop">Сбросить</button></section>`;
+function timerCard(expanded = false) {
+  return `<section class="timer-card ${expanded ? "timer-expanded" : ""}">${expanded ? "" : '<div class="timer-card-heading"><h3>Между подходами</h3><button class="text-button" data-action="timer-open">Открыть ↗</button></div>'}${expanded ? `<div class="timer-scene">${buddyHTML({ timer: true })}</div>` : ""}<div class="timer-digits" id="timer-time">03:00</div><div class="timer-options">${[3, 5, 8, 10].map((n) => `<button data-action="timer" data-min="${n}">${n} мин</button>`).join("")}</div><button class="timer-control" data-action="timer-toggle">${deadline ? "Пауза" : paused ? "Продолжить" : "Запустить 3 минуты"}</button><button class="text-button" data-action="timer-stop">Сбросить</button></section>`;
 }
 function roomMini() {
   const members = room?.access.members() || [];
@@ -497,15 +509,16 @@ function devicesModal() {
     `<h2>Мои устройства</h2><p>Открой приглашение на телефоне или ПК, выбери «Мой существующий профиль» и подтверди одинаковый код.</p>${ids.map((id) => `<div class="record-row"><b>${id === ident.id ? "Это устройство" : id === access.ownId ? "Первое устройство" : "Подключённое устройство"}</b><span>${room.online.has(id) ? "На связи" : "Не в сети"}</span><small>${esc(id.slice(0, 12))}</small></div>`).join("")}<button class="primary" data-action="copy-link">Скопировать приглашение</button><label class="recovery-setting"><input type="checkbox" id="recovery-enabled" ${state.recoveryEnabled !== false ? "checked" : ""}> Разрешить восстановление через знакомых участников комнаты</label><p class="muted">Подтвердить сможет только участник, записанный в подписанном списке доверия до потери устройства. Сейчас в списке: ${state.recoveryMembers?.length || 0}. Если потеряны все устройства и нет такой копии у участников, понадобится резервная копия.</p>`,
   );
 }
-function joinModal(code = "") {
+function joinModal(code = "", invited = false) {
+  if (invited) pendingInvite = code;
   modal(
-    `<h2>К своим</h2><form id="join-form"><label class="field"><span>10 эмодзи или ссылка-приглашение</span><textarea name="code" required rows="3" placeholder="Вставь приглашение">${esc(code)}</textarea></label><label class="field"><span>Кем войти?</span><select name="entryMode"><option value="new">Новый участник</option><option value="existing">Мой существующий профиль</option></select></label><button class="primary">Войти в комнату</button><p class="muted">Существующий профиль подключается только после подтверждения на своём устройстве или у знакомого участника.</p></form>`,
+    `<h2>${invited ? "Тебя пригласили в стаю" : "К своим"}</h2>${invited ? "<p>Выбери, как войти в общую комнату. Пока ты остаёшься в своей — приглашение ещё не принято.</p>" : ""}<form id="join-form"><label class="field"><span>10 эмодзи или ссылка-приглашение</span><textarea name="code" required rows="3" placeholder="Вставь приглашение">${esc(code)}</textarea></label><label class="field"><span>Кем войти?</span><select name="entryMode"><option value="new">Новый участник</option><option value="existing">Мой существующий профиль</option></select></label><button class="primary">Войти в комнату</button><p class="muted">Существующий профиль подключается только после подтверждения на своём устройстве или у знакомого участника.</p></form>`,
   );
 }
 function roomPage() {
   const records = room?.access.members() || [],
     members = records.length ? records : [{ ...state, id: ident.id }];
-  return `${devicePanel()}<div class="page-heading"><div><h1>Брат за брата<span class="heading-dot">.</span></h1><p>Тренируйтесь вместе, даже если ваши залы далеко друг от друга.</p></div><button class="primary" data-action="invite">＋ Позвать брата</button></div><section class="room-banner"><div><span class="pill">${esc(status)}</span><h2>Братская комната</h2><p>Код комнаты — ваше приглашение. Можно заниматься и одному.</p><button class="emoji-code" data-action="copy-code" aria-label="Скопировать эмодзи-код">${esc(state.room)}</button></div><div class="room-gorilla">🦍<span>Качаемся. Общаемся.<br>Сверяем базу.</span></div></section><div class="room-actions"><button class="secondary" data-action="join">Войти по коду</button><button class="secondary" data-action="new-room">Новая комната</button><button class="text-button" data-action="room-history">Мои комнаты</button><button class="text-button" data-action="devices">Мои устройства</button></div><section class="panel"><div class="section-line"><h2>Наш состав</h2><span>${members.length} ${members.length === 1 ? "участник" : "участников"}</span></div><div class="members">${members
+  return `${devicePanel()}<div class="page-heading"><div><h1>Брат за брата<span class="heading-dot">.</span></h1><p>Тренируйтесь вместе, даже если ваши залы далеко друг от друга.</p></div><button class="primary" data-action="invite">＋ Позвать брата</button></div><section class="room-banner"><div><span class="pill room-status" data-room-status data-status="${presence.state}">${presence.label()}</span><h2>Братская комната</h2><p>Код комнаты — ваше приглашение. Можно заниматься и одному.</p><button class="emoji-code" data-action="copy-code" aria-label="Скопировать эмодзи-код">${esc(state.room)}</button></div><div class="room-gorilla">🦍<span>Качаемся. Общаемся.<br>Сверяем базу.</span></div></section><div class="room-actions"><button class="secondary" data-action="join">Войти по коду</button><button class="secondary" data-action="new-room">Новая комната</button><button class="text-button" data-action="room-history">Мои комнаты</button><button class="text-button" data-action="devices">Мои устройства</button></div><section class="panel"><div class="section-line"><h2>Наш состав</h2><span>${members.length} ${members.length === 1 ? "участник" : "участников"}</span></div><div class="members">${members
     .map((p) => {
       const c = p.cycles?.find((x) => x.id === p.activeCycle) || p.cycles?.[0],
         s = c ? summary(c) : { sessions: 0, sets: 0 };
@@ -659,6 +672,8 @@ function render() {
     };
   appShell();
   calculate();
+  updateTimer();
+  presence.refresh();
   if (focus) {
     const next = document.querySelector(
       focus.selector || `[${focus.attr}="${CSS.escape(focus.key)}"]`,
@@ -929,6 +944,17 @@ function invitation() {
   u.hash = "room=" + encodeURIComponent(state.room);
   return u.href;
 }
+function confirmDeclineInvite() {
+  modal(
+    '<h2>Не входить в стаю?</h2><p>Ты был приглашён в общую комнату. Если закроешь приглашение, останешься в своей комнате и не увидишь результаты друзей.</p><div class="button-row"><button class="primary" data-action="invite-back">Вернуться к приглашению</button><button class="secondary" data-action="invite-decline">Остаться в своей комнате</button></div>',
+  );
+}
+dialog.addEventListener("cancel", (event) => {
+  if (pendingInvite) {
+    event.preventDefault();
+    confirmDeclineInvite();
+  }
+});
 function invite() {
   modal(
     `<h2>Зови в качалку</h2><p>Отправь другу ссылку или все 10 эмодзи. Для первой синхронизации откройте комнату одновременно.</p><div class="emoji-code">${esc(state.room)}</div><button class="primary" data-action="copy-link">Скопировать ссылку</button><button class="secondary" data-action="copy-code">Скопировать эмодзи-код</button>`,
@@ -948,6 +974,8 @@ function changeRoom(code, mode = "new") {
     viewCycle = null;
   }
   room?.stop();
+  presence.state = "connecting";
+  presence.candidate = null;
   state.room = code;
   let history = JSON.parse(localStorage.getItem("zhmi:rooms") || "[]");
   history = [code, ...history.filter((c) => c !== code)].slice(0, 30);
@@ -997,6 +1025,7 @@ function changeRoom(code, mode = "new") {
       status = s;
       const el = document.querySelector("#connection-text");
       if (el) el.textContent = s;
+      presence.refresh();
     },
   );
   const savedMode = localStorage.getItem("zhmi:entry-mode:" + room.code);
@@ -1056,7 +1085,6 @@ function emojiRain(emoji, count = 30) {
     }, i * 23);
 }
 function updateTimer() {
-  refreshBuddyMood();
   const left = deadline
       ? Math.max(0, Math.ceil((deadline - Date.now()) / 1000))
       : paused || 180,
@@ -1071,9 +1099,11 @@ function updateTimer() {
     localStorage.removeItem("zhmi:timer");
     toast("Отдых окончен. Готов к подходу?");
     emojiRain("🔥", 28);
-    const control = document.querySelector(".timer-control");
-    if (control) control.textContent = "Запустить 3 минуты";
+    document
+      .querySelectorAll(".timer-control")
+      .forEach((control) => (control.textContent = "Запустить 3 минуты"));
   }
+  refreshBuddyMood();
 }
 setInterval(updateTimer, 1000);
 document.addEventListener("click", async (event) => {
@@ -1082,8 +1112,23 @@ document.addEventListener("click", async (event) => {
   const a = b.dataset.action;
   if (b.tagName === "A") event.preventDefault();
   if (a === "close") {
+    if (pendingInvite) {
+      confirmDeclineInvite();
+      return;
+    }
     dialog.close();
     render();
+  } else if (a === "connection") {
+    presence.open();
+  } else if (a === "invite-back") {
+    joinModal(pendingInvite, true);
+  } else if (a === "invite-decline") {
+    pendingInvite = null;
+    dialog.close();
+    const u = new URL(location.href);
+    u.hash = "";
+    historyReplace(u);
+    toast("Ты в своей комнате. Приглашение можно открыть снова.");
   } else if (a === "theme") {
     const dark = document.documentElement.dataset.theme !== "dark";
     document.documentElement.dataset.theme = dark ? "dark" : "light";
@@ -1310,12 +1355,13 @@ document.addEventListener("click", async (event) => {
     toast("Есть контакт, брат!");
   } else if (a === "timer-open")
     modal(
-      `<h2>Перерыв между подходами</h2>${timerCard()}<p>В оригинале: 3–5 минут на лёгких неделях, 5–10 минут для тяжёлых подходов. Ориентируйся на восстановление.</p>`,
+      `<h2>Перерыв между подходами</h2>${timerCard(true)}<p class="timer-advice"> Отдых 3–5 минут на лёгких неделях, 5–10 минут для тяжёлых подходов. Ориентируйся на восстановление.</p>`,
     );
   else if (a === "timer") {
     deadline = Date.now() + Number(b.dataset.min) * 60000;
     paused = 0;
     localStorage.setItem("zhmi:timer", deadline);
+    notifyBuddyTimer();
     updateTimer();
     document
       .querySelectorAll(".timer-control")
@@ -1333,6 +1379,7 @@ document.addEventListener("click", async (event) => {
     document
       .querySelectorAll(".timer-control")
       .forEach((x) => (x.textContent = deadline ? "Пауза" : "Продолжить"));
+    notifyBuddyTimer();
     updateTimer();
   } else if (a === "timer-stop") {
     deadline = 0;
@@ -1341,6 +1388,7 @@ document.addEventListener("click", async (event) => {
     document
       .querySelectorAll(".timer-control")
       .forEach((x) => (x.textContent = "Запустить 3 минуты"));
+    notifyBuddyTimer();
     updateTimer();
   } else if (a === "export") {
     download(
@@ -1456,6 +1504,7 @@ document.addEventListener("submit", (event) => {
   } else if (f.id === "join-form") {
     try {
       const code = parseRoom(f.elements.code.value);
+      pendingInvite = null;
       changeRoom(code, f.elements.entryMode?.value || "new");
       page = "room";
       dialog.close();
@@ -1537,7 +1586,14 @@ window.addEventListener("storage", (event) => {
 const inviteCode = new URLSearchParams(location.hash.slice(1)).get("room");
 installBuddy({
   resting: () => cycle().position?.phase === "rest",
-  timerResting: () => !!(deadline || paused),
+  sessions: () => state.cycles.reduce((n, c) => n + (c.done?.length || 0), 0),
+  timer: () => ({
+    active: !!deadline,
+    paused: !!paused,
+    left: deadline
+      ? Math.max(0, Math.ceil((deadline - Date.now()) / 1000))
+      : paused || 180,
+  }),
   reaction,
   toast,
   stats: () =>
@@ -1548,11 +1604,21 @@ render();
 if (inviteCode) {
   try {
     const code = parseRoom(inviteCode);
-    if (code !== state.room) joinModal(code);
+    if (code !== state.room) joinModal(code, true);
   } catch {
     toast("В приглашении неверный код");
   }
 }
+window.addEventListener("hashchange", () => {
+  const invite = new URLSearchParams(location.hash.slice(1)).get("room");
+  if (!invite) return;
+  try {
+    const code = parseRoom(invite);
+    if (code !== state.room) joinModal(code, true);
+  } catch {
+    toast("В приглашении неверный код");
+  }
+});
 initUpdates({
   save: async () => {
     commit();

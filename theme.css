@@ -13,7 +13,7 @@
 :root {
   color-scheme: light;
 }
-:root[data-theme="dark"] {
+:root[data-theme="dark"][data-theme] {
   color-scheme: dark;
   color: #e1ebf3;
   background: #101b26;
@@ -24,8 +24,8 @@
   --mint: #244d40;
   --white: #1b2b3a;
 }
-:root[data-theme="dark"]
-  :is(
+:root[data-theme="dark"][data-theme]
+  :where(
     .sidebar,
     .topbar,
     .bottom-nav,
@@ -48,17 +48,17 @@
   color: #e1ebf3;
   border-color: #344656;
 }
-:root[data-theme="dark"] :is(input, select, textarea) {
+:root[data-theme="dark"][data-theme] :where(input, select, textarea) {
   background: #142331;
   color: #e1ebf3;
   border-color: #4b6073;
 }
-:root[data-theme="dark"] input::placeholder {
+:root[data-theme="dark"][data-theme] input::placeholder {
   color: #9eafbf;
   opacity: 1;
 }
-:root[data-theme="dark"]
-  :is(
+:root[data-theme="dark"][data-theme]
+  :where(
     .panel p,
     .day-person,
     .bar-column > span,
@@ -78,8 +78,8 @@
   ) {
   color: #acbdce;
 }
-:root[data-theme="dark"]
-  :is(
+:root[data-theme="dark"][data-theme]
+  :where(
     .nav-item:hover,
     .secondary:hover,
     .theme-toggle,
@@ -103,8 +103,8 @@
   background: #23384b;
   border-color: #344656;
 }
-:root[data-theme="dark"]
-  :is(
+:root[data-theme="dark"][data-theme]
+  :where(
     .sidebar nav button.active,
     .calendar-modes button.active,
     .calendar-day.has-training,
@@ -117,8 +117,8 @@
   color: #c4d5ff;
   border-color: #6987bf;
 }
-:root[data-theme="dark"]
-  :is(
+:root[data-theme="dark"][data-theme]
+  :where(
     .primary,
     .brand-icon,
     .bottom-nav button.active > span,
@@ -127,21 +127,21 @@
   background: #426de4;
   color: #fff;
 }
-:root[data-theme="dark"] :is(.primary:hover) {
+:root[data-theme="dark"][data-theme] :where(.primary:hover) {
   background: #527cf1;
 }
-:root[data-theme="dark"] .warmup-panel {
+:root[data-theme="dark"][data-theme] .warmup-panel {
   background: #3b3020;
   border-color: #75603b;
 }
-:root[data-theme="dark"]
-  :is(.warmup-panel b, .warmup-panel small, .warmup-panel p, .note) {
+:root[data-theme="dark"][data-theme]
+  :where(.warmup-panel b, .warmup-panel small, .warmup-panel p, .note) {
   color: #e6c78d;
 }
-:root[data-theme="dark"] .note {
+:root[data-theme="dark"][data-theme] .note {
   background: #3b3020;
 }
-:root[data-theme="dark"] .calendar-day.work-day {
+:root[data-theme="dark"][data-theme] .calendar-day.work-day {
   background: repeating-linear-gradient(
     135deg,
     #3a3329,
@@ -151,81 +151,83 @@
   );
   border-color: #75603b;
 }
-:root[data-theme="dark"] .calendar-day.done {
+:root[data-theme="dark"][data-theme] .calendar-day.done {
   background: #254a3c;
   border-color: #639e82;
 }
-:root[data-theme="dark"] .calendar-day.whole-team {
+:root[data-theme="dark"][data-theme] .calendar-day.whole-team {
   background: #30674f;
   border-color: #8cceaa;
 }
-:root[data-theme="dark"]
-  :is(.calendar-day-status, .calendar-day.done .calendar-day-status) {
+:root[data-theme="dark"][data-theme]
+  :where(.calendar-day-status, .calendar-day.done .calendar-day-status) {
   color: #b4d6ff;
 }
-:root[data-theme="dark"]
+:root[data-theme="dark"][data-theme]
   .calendar-day.is-today
   .calendar-day-top
   > span:first-child {
   color: #b5ccff;
 }
-:root[data-theme="dark"] .schedule-strip {
+:root[data-theme="dark"][data-theme] .schedule-strip {
   background: #39324f;
 }
-:root[data-theme="dark"] .schedule-strip p {
+:root[data-theme="dark"][data-theme] .schedule-strip p {
   color: #c3b4dd;
 }
-:root[data-theme="dark"] :is(.buddy, .buddy.is-chilling) {
+:root[data-theme="dark"][data-theme] :where(.buddy, .buddy.is-chilling) {
   background: #244b40;
 }
-:root[data-theme="dark"] :is(.buddy-heading, .buddy-hint, .buddy-speech p) {
+:root[data-theme="dark"][data-theme]
+  :where(.buddy-heading, .buddy-hint, .buddy-speech p) {
   color: #acd7c4;
 }
-:root[data-theme="dark"] .buddy-art {
+:root[data-theme="dark"][data-theme] .buddy-art {
   background: #b9e5d1;
   border-radius: 16px;
 }
-:root[data-theme="dark"] .buddy-speech:before {
+:root[data-theme="dark"][data-theme] .buddy-speech:before {
   background: #1b2b3a;
 }
-:root[data-theme="dark"] .buddy-actions button {
+:root[data-theme="dark"][data-theme] .buddy-actions button {
   background: #365f52;
 }
-:root[data-theme="dark"] .buddy-actions [aria-pressed="true"] {
+:root[data-theme="dark"][data-theme] .buddy-actions [aria-pressed="true"] {
   background: #655781;
 }
-:root[data-theme="dark"] .timer-digits {
+:root[data-theme="dark"][data-theme] .timer-digits {
   color: #a6d6dd;
 }
-:root[data-theme="dark"] :is(.timer-options button, .reactions button) {
+:root[data-theme="dark"][data-theme]
+  :where(.timer-options button, .reactions button) {
   background: #23384b;
   border-color: #4b6073;
 }
-:root[data-theme="dark"] .update-notice {
+:root[data-theme="dark"][data-theme] .update-notice {
   background: #243b61;
   color: #eff4ff;
   border-color: #6987bf;
 }
-:root[data-theme="dark"] .update-notice span {
+:root[data-theme="dark"][data-theme] .update-notice span {
   color: #c2d1ea;
 }
-:root[data-theme="dark"] dialog::backdrop {
+:root[data-theme="dark"][data-theme] dialog::backdrop {
   background: #050b12b8;
 }
-:root[data-theme="dark"] :is(th, td, .stats-strip) {
+:root[data-theme="dark"][data-theme] :where(th, td, .stats-strip) {
   border-color: #344656;
 }
-:root[data-theme="dark"] .rpe-table th:first-child {
+:root[data-theme="dark"][data-theme] .rpe-table th:first-child {
   background: #293e64;
 }
-:root[data-theme="dark"] .loading {
+:root[data-theme="dark"][data-theme] .loading {
   background: #101b26;
 }
 .reaction-hint {
   margin-top: 18px;
 }
-:root[data-theme="dark"]
-  :is(
+:root[data-theme="dark"][data-theme]
+  :where(
     .cycle-track button,
     .day-tabs,
     .set-check,
@@ -242,8 +244,8 @@
   color: #c8d8e8;
   border-color: #4b6073;
 }
-:root[data-theme="dark"]
-  :is(
+:root[data-theme="dark"][data-theme]
+  :where(
     .cycle-track button.active,
     .day-tabs button.active,
     .filter-tabs button.active
@@ -252,21 +254,22 @@
   color: #d9e5ff;
   border-color: #829fe1;
 }
-:root[data-theme="dark"] :is(.room-banner, .device-panel) {
+:root[data-theme="dark"][data-theme] :where(.room-banner, .device-panel) {
   background: #39324f;
   color: #ede4ff;
 }
-:root[data-theme="dark"] :is(.room-banner p, .room-gorilla span) {
+:root[data-theme="dark"][data-theme]
+  :where(.room-banner p, .room-gorilla span) {
   color: #c3b4dd;
 }
-:root[data-theme="dark"] .exercise-foot {
+:root[data-theme="dark"][data-theme] .exercise-foot {
   background: #142331;
   border-color: #344656;
 }
-:root[data-theme="dark"] .cycle-track small {
+:root[data-theme="dark"][data-theme] .cycle-track small {
   color: #acbdce;
 }
-:root[data-theme="dark"] dialog p {
+:root[data-theme="dark"][data-theme] dialog p {
   color: #acbdce;
 }
 @media (max-width: 350px) {
