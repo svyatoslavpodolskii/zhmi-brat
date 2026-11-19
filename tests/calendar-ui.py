@@ -32,7 +32,7 @@ with sync_playwright() as p:
  page.reload();page.wait_for_load_state('networkidle');page.locator('.bottom-nav [data-page="calendar"]').click();assert '4 рабочих / 2 выходных' in page.locator('.schedule-strip').inner_text()
  page.locator('.topbar [data-action="profile"]').click();page.locator('#profile-form select[name="avatar"]').select_option("🐺");page.locator('#profile-form button.primary').click();assert page.locator('.topbar>.avatar').inner_text()=='🐺'
  buddy=page.locator('.mobile-buddy [data-buddy]');buddy.scroll_into_view_if_needed()
- a=buddy.locator('.buddy-figure img').evaluate('(e)=>getComputedStyle(e).transform');page.wait_for_timeout(450);b=buddy.locator('.buddy-figure img').evaluate('(e)=>getComputedStyle(e).transform');assert a!=b
+ a=buddy.locator('.buddy-motion img').evaluate('(e)=>getComputedStyle(e).transform');page.wait_for_timeout(450);b=buddy.locator('.buddy-motion img').evaluate('(e)=>getComputedStyle(e).transform');assert a!=b
  buddy.locator('[data-buddy-action="five"]').click();assert 'контакт' in buddy.locator('[data-buddy-line]').inner_text() or buddy.locator('[data-buddy-line]').inner_text()
  buddy.locator('[data-buddy-action="chill"]').click();assert 'is-chilling' in buddy.get_attribute('class');page.screenshot(path=str(out/'calendar-chilling.png'),full_page=True)
  buddy.locator('[data-buddy-action="chill"]').click();assert 'is-awake' in buddy.get_attribute('class')

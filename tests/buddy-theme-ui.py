@@ -10,9 +10,9 @@ with sync_playwright() as p:
  for action in ['banana','chill','chill','five','flex']:buddy.locator(f'[data-buddy-action="{action}"]').click()
  stage=buddy.locator('[data-buddy-touch]');box=stage.bounding_box();page.mouse.move(box['x']+box['width']/2,box['y']+box['height']/2);page.mouse.down();page.wait_for_timeout(680);page.mouse.up();assert buddy.get_attribute('data-move')=='bend'
  page.locator('.floating-timer').click();timer=page.locator('#dialog [data-buddy]');page.locator('#dialog [data-action="timer"][data-min="3"]').click()
- assert 'is-chilling' in timer.get_attribute('class');assert 'is-awake' in buddy.get_attribute('class')
- a=timer.locator('.buddy-figure').evaluate('(e)=>getComputedStyle(e).transform');page.wait_for_timeout(500);assert a!=timer.locator('.buddy-figure').evaluate('(e)=>getComputedStyle(e).transform')
- page.screenshot(path=str(out/'timer-light.png'));page.locator('#dialog [data-action="timer-stop"]').click();assert 'is-awake' in timer.get_attribute('class');page.locator('#dialog [data-action="close"]').click()
+ assert 'is-chilling' in timer.get_attribute('class');assert 'is-chilling' in buddy.get_attribute('class')
+ a=timer.locator('.buddy-motion').evaluate('(e)=>getComputedStyle(e).transform');page.wait_for_timeout(500);assert a!=timer.locator('.buddy-motion').evaluate('(e)=>getComputedStyle(e).transform')
+ page.screenshot(path=str(out/'timer-light.png'));page.locator('#dialog [data-action="timer-stop"]').click();assert 'is-chilling' in timer.get_attribute('class');page.locator('#dialog [data-action="close"]').click()
  page.locator('.topbar [data-action="profile"]').click();assert page.locator('.avatar-picker').count()==0;assert page.locator('#profile-form select[name="avatar"]').count()==1;page.locator('#dialog [data-action="close"]').click()
  page.locator('[data-action="theme"]').click();assert page.locator('html').get_attribute('data-theme')=='dark';page.reload();page.wait_for_load_state('networkidle');assert page.locator('html').get_attribute('data-theme')=='dark'
  for width in [320,390,768,1440]:
